@@ -1,0 +1,11 @@
+# executable
+ircserv
+
+# object / dependency files
+*.o
+*.d
+
+# build directory
+objs/
+
+

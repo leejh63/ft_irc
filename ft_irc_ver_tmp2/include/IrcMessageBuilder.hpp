@@ -132,7 +132,8 @@ private:
     std::string build_User_Command( int fd,
                                     const std::string& command,
                                     const std::string& params,
-                                    const std::string& trailing ) const;
+                                    const std::string& trailing,
+                                    bool hasTrailing ) const;
     std::string build_Channel_Names( const std::string& channelName ) const;
 
 private:

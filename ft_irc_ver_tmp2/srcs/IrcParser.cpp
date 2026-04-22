@@ -54,7 +54,7 @@ bool IrcParser::parse_Prefix( const std::string& raw_String, size_t& pos, std::s
 
 bool IrcParser::parse_Verb( const std::string& raw_String, size_t& pos, std::string& out_Verb )
 {
-    // 공백 스킵(관대하게)
+    // 공백 스킵(널널하게)
     while (pos < raw_String.size() && raw_String[pos] == ' ')
         pos++;
 

@@ -267,7 +267,19 @@ void IrcCore::append_Mode_Change( std::string& outModes,
                                   char modeChar,
                                   const std::string& appliedParam ) const
 {
-    if (outModes.empty() || outModes[outModes.size() - 1] != sign)
+    char lastSign = 0;
+
+    for (size_t i = outModes.size(); i > 0; --i)
+    {
+        const char current = outModes[i - 1];
+        if (current == '+' || current == '-')
+        {
+            lastSign = current;
+            break;
+        }
+    }
+
+    if (lastSign != sign)
         outModes += sign;
 
     outModes += modeChar;

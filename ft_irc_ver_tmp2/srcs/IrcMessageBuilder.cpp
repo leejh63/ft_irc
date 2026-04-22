@@ -370,7 +370,8 @@ std::string IrcMessageBuilder::build_User_Prefix( int fd ) const
 std::string IrcMessageBuilder::build_User_Command( int fd,
                                                    const std::string& command,
                                                    const std::string& params,
-                                                   const std::string& trailing ) const
+                                                   const std::string& trailing,
+                                                   bool hasTrailing ) const
 {
     std::string msg = ":" + build_User_Prefix(fd) + " " + command;
 
@@ -380,7 +381,7 @@ std::string IrcMessageBuilder::build_User_Command( int fd,
         msg += params;
     }
 
-    if (!trailing.empty())
+    if (hasTrailing)
     {
         msg += " :";
         msg += trailing;
@@ -393,47 +394,47 @@ std::string IrcMessageBuilder::build_User_Command( int fd,
 std::string IrcMessageBuilder::build_Join_Message( int fd,
                                                    const std::string& channelName ) const
 {
-    return build_User_Command(fd, "JOIN", channelName, "");
+    return build_User_Command(fd, "JOIN", channelName, "", false);
 }
 
 std::string IrcMessageBuilder::build_Part_Message( int fd,
                                                    const std::string& channelName,
                                                    const std::string& reason ) const
 {
-    return build_User_Command(fd, "PART", channelName, reason);
+    return build_User_Command(fd, "PART", channelName, reason, !reason.empty());
 }
 
 std::string IrcMessageBuilder::build_Quit_Message( int fd,
                                                    const std::string& reason ) const
 {
-    return build_User_Command(fd, "QUIT", "", reason);
+    return build_User_Command(fd, "QUIT", "", reason, !reason.empty());
 }
 
 std::string IrcMessageBuilder::build_Nick_Message( int fd,
                                                    const std::string& newNick ) const
 {
-    return build_User_Command(fd, "NICK", "", newNick);
+    return build_User_Command(fd, "NICK", "", newNick, true);
 }
 
 std::string IrcMessageBuilder::build_Privmsg_Message( int fd,
                                                       const std::string& target,
                                                       const std::string& text ) const
 {
-    return build_User_Command(fd, "PRIVMSG", target, text);
+    return build_User_Command(fd, "PRIVMSG", target, text, true);
 }
 
 std::string IrcMessageBuilder::build_Topic_Message( int fd,
                                                     const std::string& channelName,
                                                     const std::string& topic ) const
 {
-    return build_User_Command(fd, "TOPIC", channelName, topic);
+    return build_User_Command(fd, "TOPIC", channelName, topic, true);
 }
 
 std::string IrcMessageBuilder::build_Invite_Message( int fd,
                                                      const std::string& targetNick,
                                                      const std::string& channelName ) const
 {
-    return build_User_Command(fd, "INVITE", targetNick, channelName);
+    return build_User_Command(fd, "INVITE", targetNick + " " + channelName, "", false);
 }
 
 std::string IrcMessageBuilder::build_Channel_Names( const std::string& channelName ) const
@@ -462,7 +463,11 @@ std::string IrcMessageBuilder::build_Kick_Message( int fd,
                                                    const std::string& targetNick,
                                                    const std::string& comment ) const
 {
-    return build_User_Command(fd, "KICK", channelName + " " + targetNick, comment);
+    return build_User_Command(fd,
+                              "KICK",
+                              channelName + " " + targetNick,
+                              comment,
+                              !comment.empty());
 }
 
 std::string IrcMessageBuilder::build_Mode_Message( int fd,
@@ -472,7 +477,7 @@ std::string IrcMessageBuilder::build_Mode_Message( int fd,
 {
     std::string params = target + " " + modes;
     append_Param(params, param);
-    return build_User_Command(fd, "MODE", params, "");
+    return build_User_Command(fd, "MODE", params, "", false);
 }
 
 std::string IrcMessageBuilder::build_Cap_Message( const std::string& target,

@@ -16,6 +16,7 @@ void IrcCore::handle_Pass( ClientEntry& entry,
 
     if (result == PASS_PASSWORD_BAD)
     {
+        _clients.set_Pass_Ok(entry.fd, false);
         reply_And_Debug(entry, cmd, out,
                         _messages.build_Err_Password_mismatch(current_Nick(entry.fd)),
                         debug_Message(result));
