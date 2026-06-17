@@ -381,7 +381,8 @@ void IrcCore::handle_Kick( ClientEntry& entry,
 
     send_To_Channel(channelName, kickMsg, out, entry.fd);
     push_Send(out, entry.fd, kickMsg);
-    push_Send(out, targetClient->fd, kickMsg);
+    if (targetClient->fd != entry.fd)
+        push_Send(out, targetClient->fd, kickMsg);
 
     debug_Full(entry, cmd, "[KICK] kick processed\n");
 }
@@ -393,7 +394,8 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
     const std::string& targetNick = cmd.params[0];
     const std::string nick = current_Nick(entry.fd);
 
-    if (targetNick != nick)
+    ClientEntry* targetClient = _clients.find_By_Nick(targetNick);
+    if (targetClient == NULL || targetClient->fd != entry.fd)
     {
         reply_And_Debug(entry, cmd, out,
                         _messages.build_Err_Users_dont_match(nick),

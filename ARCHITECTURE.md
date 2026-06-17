@@ -1,6 +1,6 @@
 # ft_irc 아키텍처 / 전체 흐름 정리
 
-이 문서는 현재 제출된 `mandatory.zip` 코드베이스를 기준으로,
+이 문서는 현재 정리된 제출본 코드베이스를 기준으로,
 `ft_irc`의 **전체 구조**, **런타임 흐름**, **클래스 책임 분리**, **명령 처리 경로**를
 한눈에 파악할 수 있도록 정리한 아키텍처 문서다.
 
@@ -366,7 +366,7 @@ flowchart TD
     M --> N["try_Register"]
     N --> O{passOk && hasNick && hasUser?}
     O -- yes --> P["registered = true"]
-    P --> Q["001 002 003 004 plus MOTD replies"]
+    P --> Q["001 Welcome reply"]
     O -- no --> R["wait remaining steps"]
 ```
 
@@ -637,27 +637,34 @@ Registry에 들어 있다.
 
 ---
 
-## 16. 이 아키텍처를 볼 때 같이 기억해야 할 약점
+## 16. 이 아키텍처를 볼 때 같이 기억해야 할 구현 정책
 
-이 문서는 구조 설명 문서지만,
-현재 구조를 정확히 이해하려면 약점도 같이 알아야 한다.
+이 문서는 구조 설명 문서지만, 현재 동작을 정확히 이해하려면 아래 정책도 같이 알아두는 것이 좋다.
 
-### 16-1. channel operator lifecycle이 완전하지 않다
-- `MODE -o`에서는 마지막 operator 제거를 막으려 한다.
-- 하지만 `PART`, `QUIT`, disconnect 경로에서는
-  operator가 0명이 되는 orphan channel이 생길 수 있다.
+### 16-1. channel operator lifecycle
+- `MODE -o`에서는 마지막 operator 제거를 막는다.
+- `PART`, `QUIT`, disconnect, `KICK`으로 마지막 operator가 채널에서 사라지면 `ChannelRegistry`가 남은 member 중 한 명을 자동 operator로 승격한다.
+- 이 승격은 채널 관리 불능 상태를 막기 위한 registry-level 불변식 보정이다. 별도의 server-origin `MODE +o` broadcast는 현재 구현하지 않는다.
 
-### 16-2. disconnect cleanup 책임이 중복된다
-- `IrcCore::disconnect_Client()`가 채널 탈퇴를 처리하고,
-- `Server::close_Client()`도 채널 정리를 수행한다.
+### 16-2. disconnect cleanup 책임
+- `IrcCore::disconnect_Client()`는 QUIT 전파 대상 수집과 채널 탈퇴 처리를 수행한다.
+- `Server::close_Client()`도 fd close 직전에 registry cleanup을 한 번 더 호출한다.
+- `ChannelRegistry`의 제거 함수가 idempotent하게 동작하므로 중복 cleanup이 치명적이지는 않지만, 책임 경계는 더 정리할 여지가 있다.
 
-### 16-3. input model과 output model이 완전히 대칭적이지 않다
+### 16-3. trailing parameter 직렬화
 - parser는 `hasTrailing`을 보존한다.
-- builder는 `empty trailing`과 `no trailing`을 완전히 구분하지 못한다.
-- 그래서 `TOPIC #chan :` 같은 케이스 직렬화가 정확하지 않다.
+- builder의 user-command 생성 함수도 `hasTrailing`을 인자로 받아 `TOPIC #chan :` 같은 빈 trailing 케이스를 표현할 수 있다.
+- 각 command builder에서 trailing 필요 여부를 명확히 넘겨야 wire format이 정확하게 유지된다.
 
-즉,
-구조는 꽤 괜찮지만 **불변식/직렬화 디테일**은 덜 마감된 상태다.
+### 16-4. nickname matching
+- nick 중복 검사와 nick lookup은 `ClientRegistry`에서 canonical 비교로 처리한다.
+- ASCII 대소문자 차이와 일부 IRC-style bracket mapping을 접어 `alice` / `Alice` 같은 case-only 중복을 막는다.
+
+### 16-5. PASS 정책
+- 최종 등록 전 `PASS`가 다시 들어오면 password를 재평가한다.
+- 잘못된 repeated `PASS`는 `passOk`를 false로 되돌려 이후 `NICK` / `USER` 진행을 막는다.
+
+즉, 구조는 유지하면서 **채널 operator 불변식, repeated PASS, nickname canonical matching, empty trailing 처리**를 보강한 상태다.
 
 ---
 

@@ -33,9 +33,7 @@ IrcCore::handleResult IrcCore::check_Pass( int fd,
 {
     std::string providedPassword;
 
-    if (_clients.is_Registered(fd) ||
-        _clients.has_Nick(fd) ||
-        _clients.has_User(fd))
+    if (_clients.is_Registered(fd))
         return PASS_ALREADY_REGISTERED;
 
     if (!cmd.params.empty())
@@ -46,10 +44,13 @@ IrcCore::handleResult IrcCore::check_Pass( int fd,
     if (providedPassword.empty())
         return PASS_PARAM_MISSING;
 
-    if (providedPassword == _server_password)
-        return PASS_PASSWORD_OK;
+    if (providedPassword != _server_password)
+        return PASS_PASSWORD_BAD;
 
-    return PASS_PASSWORD_BAD;
+    if (_clients.has_Nick(fd) || _clients.has_User(fd))
+        return PASS_ALREADY_REGISTERED;
+
+    return PASS_PASSWORD_OK;
 }
 
 IrcCore::handleResult IrcCore::check_Nick( const IrcCommand& cmd ) const
@@ -148,7 +149,7 @@ IrcCore::handleResult IrcCore::apply_Mode_Param( const std::string& channelName,
                 return MODE_PARAM_MISSING;
 
             _channels.set_Key(channelName, modeParam);
-            appliedParam = "*";
+            appliedParam = modeParam;
             return MODE_APPLY_OK;
         }
 

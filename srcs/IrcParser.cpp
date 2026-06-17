@@ -2,8 +2,6 @@
 #include "IrcCommand.hpp"
 
 
-#include <iostream> // 디버깅
-
 static void cmd_clear( IrcCommand& cmd )
 {
     cmd.raw_Line.clear();
@@ -19,11 +17,7 @@ static void cmd_clear( IrcCommand& cmd )
 void IrcParser::parse_Stripcr( std::string& raw_String )
 {
     if (!raw_String.empty() && raw_String[raw_String.size() - 1] == '\r')
-    {
-        //디버깅
-        std::cout << "Strip cr\n";
         raw_String.erase(raw_String.size() - 1);
-    }
 }
 
 bool IrcParser::parse_Prefix( const std::string& raw_String, size_t& pos, std::string& out_Prefix )

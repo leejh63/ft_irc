@@ -29,9 +29,34 @@ namespace
         return entry;
     }
 
+    char fold_Nick_Char( char c )
+    {
+        if (c >= 'A' && c <= 'Z')
+            return static_cast<char>(c - 'A' + 'a');
+        if (c == '[')
+            return '{';
+        if (c == ']')
+            return '}';
+        if (c == '\\')
+            return '|';
+        if (c == '~')
+            return '^';
+        return c;
+    }
+
+    std::string fold_Nick( const std::string& nick )
+    {
+        std::string folded = nick;
+
+        for (size_t i = 0; i < folded.size(); ++i)
+            folded[i] = fold_Nick_Char(folded[i]);
+
+        return folded;
+    }
+
     bool matches_Nick( const ClientEntry& entry, const std::string& nick )
     {
-        return entry.hasNick && entry.nick == nick;
+        return entry.hasNick && fold_Nick(entry.nick) == fold_Nick(nick);
     }
 
     bool can_Register( const ClientEntry& entry )

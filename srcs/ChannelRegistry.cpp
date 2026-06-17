@@ -35,17 +35,23 @@ namespace
         return is_Channel_Member(channel, fd) && is_Channel_Operator(channel, fd);
     }
 
+    void ensure_Channel_Has_Operator( ChannelEntry& channel )
+    {
+        if (channel.members.empty())
+            return;
+
+        if (!channel.operators.empty())
+            return;
+
+        channel.operators.insert(*channel.members.begin());
+    }
+
     void erase_Client_From_Channel( ChannelEntry& channel, int fd )
     {
         channel.members.erase(fd);
         channel.operators.erase(fd);
         channel.invited.erase(fd);
-    }
-
-    bool should_Assign_Initial_Operator( const ChannelEntry& channel,
-                                         bool created )
-    {
-        return created || channel.members.size() == 1;
+        ensure_Channel_Has_Operator(channel);
     }
 }
 
@@ -212,6 +218,7 @@ bool ChannelRegistry::remove_Member( const std::string& name, int fd )
         return false;
 
     erase_Client_From_Channel(*ch, fd);
+    ensure_Channel_Has_Operator(*ch);
     return true;
 }
 
@@ -327,6 +334,8 @@ void ChannelRegistry::remove_Client_From_All_Channels( int fd )
             _channels.erase(toErase);
             continue;
         }
+
+        ensure_Channel_Has_Operator(it->second);
 
         ++it;
     }
@@ -471,13 +480,10 @@ bool ChannelRegistry::is_Channel_Full( const std::string& name ) const
 
 bool ChannelRegistry::join_Channel( const std::string& name, int fd )
 {
-    bool created = false;
-
     if (!has_Channel(name))
     {
         if (!add_Channel(name))
             return false;
-        created = true;
     }
 
     ChannelEntry* ch = find_By_Name(name);
@@ -490,8 +496,7 @@ bool ChannelRegistry::join_Channel( const std::string& name, int fd )
     ch->members.insert(fd);
     ch->invited.erase(fd);
 
-    if (should_Assign_Initial_Operator(*ch, created))
-        ch->operators.insert(fd);
+    ensure_Channel_Has_Operator(*ch);
 
     return true;
 }
