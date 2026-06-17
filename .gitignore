@@ -8,4 +8,11 @@ ircserv
 # build directory
 objs/
 
+# local outputs
+*.log
+*.out
 
+# editor / OS files
+.DS_Store
+.vscode/
+.idea/

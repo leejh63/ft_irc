@@ -13,9 +13,7 @@ public:
     ChannelRegistry( void );
     ~ChannelRegistry( void );
 
-public: // 디버깅
-    void    debug_Print_All( void ) const;
-
+public:
 public:
     void                collect_Shared_Peers( int fd, std::set<int>& outPeers ) const;
     void                collect_User_Channels( int fd, std::vector<std::string>& outChannels ) const;

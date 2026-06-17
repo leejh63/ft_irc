@@ -8,7 +8,7 @@ void IrcCore::handle_Cap( ClientEntry& entry,
 
     if (cmd.params.empty())
     {
-        debug_Full(entry, cmd, "[CAP] subcommand missing\n");
+        trace_Full(entry, cmd, "[CAP] subcommand missing\n");
         return;
     }
 
@@ -16,7 +16,7 @@ void IrcCore::handle_Cap( ClientEntry& entry,
 
     if (subCommand == "LS" || subCommand == "LIST")
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Cap_Message(target, subCommand, ""),
                         "[CAP] empty capability list sent\n");
         return;
@@ -24,7 +24,7 @@ void IrcCore::handle_Cap( ClientEntry& entry,
 
     if (subCommand == "REQ")
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Cap_Message(target, "NAK", cmd.trailing),
                         "[CAP] capability request rejected\n");
         return;
@@ -32,11 +32,11 @@ void IrcCore::handle_Cap( ClientEntry& entry,
 
     if (subCommand == "END")
     {
-        debug_Full(entry, cmd, "[CAP] capability negotiation ended\n");
+        trace_Full(entry, cmd, "[CAP] capability negotiation ended\n");
         return;
     }
 
-    debug_Full(entry, cmd, "[CAP] unsupported subcommand ignored\n");
+    trace_Full(entry, cmd, "[CAP] unsupported subcommand ignored\n");
 }
 
 void IrcCore::handle_Ping( ClientEntry& entry,
@@ -56,7 +56,7 @@ void IrcCore::handle_Ping( ClientEntry& entry,
         return;
     }
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Pong_Message(token),
                     "[PING] pong sent\n");
 }
@@ -69,7 +69,7 @@ void IrcCore::handle_Who( ClientEntry& entry,
 
     if (cmd.params.empty())
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_End_of_who(requesterNick, "*"),
                         "[WHO] no mask, end of who\n");
         return;
@@ -79,7 +79,7 @@ void IrcCore::handle_Who( ClientEntry& entry,
 
     if (mask.empty() || mask[0] != '#')
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_End_of_who(requesterNick, mask.empty() ? "*" : mask),
                         "[WHO] unsupported non-channel who\n");
         return;
@@ -87,7 +87,7 @@ void IrcCore::handle_Who( ClientEntry& entry,
 
     if (!_channels.has_Channel(mask))
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_End_of_who(requesterNick, mask),
                         "[WHO] no such channel, end of who\n");
         return;
@@ -108,7 +108,7 @@ void IrcCore::handle_Who( ClientEntry& entry,
     push_Send(out, entry.fd,
               _messages.build_Rpl_End_of_who(requesterNick, mask));
 
-    debug_Full(entry, cmd, "[WHO] channel who replied\n");
+    trace_Full(entry, cmd, "[WHO] channel who replied\n");
 }
 
 void IrcCore::handle_Pong( ClientEntry& entry,
@@ -116,7 +116,7 @@ void IrcCore::handle_Pong( ClientEntry& entry,
                            std::vector<ServerAction>& out )
 {
     (void)out;
-    debug_Full(entry, cmd, "[PONG] pong received\n");
+    trace_Full(entry, cmd, "[PONG] pong received\n");
 }
 
 void IrcCore::handle_Error( ClientEntry& entry,
@@ -124,14 +124,14 @@ void IrcCore::handle_Error( ClientEntry& entry,
                             std::vector<ServerAction>& out )
 {
     (void)out;
-    debug_Full(entry, cmd, debug_Message(HANDLE_ERROR));
+    trace_Full(entry, cmd, trace_Message(HANDLE_ERROR));
 }
 
 void IrcCore::handle_Unknown( ClientEntry& entry,
                               const IrcCommand& cmd,
                               std::vector<ServerAction>& out )
 {
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_Unknown_command(current_Nick(entry.fd), cmd.verb),
-                    debug_Message(HANDLE_UNKNOWN));
+                    trace_Message(HANDLE_UNKNOWN));
 }

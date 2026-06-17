@@ -1,57 +1,6 @@
 #include "IrcCore.hpp"
 #include "IrcParser.hpp"
 
-#include <iostream>
-#include <sstream>
-
-namespace
-{
-    const bool kEnableDebugLogging = false;
-}
-
-static std::string build_cmd_struct_string(
-    const ClientEntry& entry,
-    const IrcCommand& cmd )
-{
-    std::ostringstream oss;
-
-    oss << "=========[CMD fd=" << entry.fd << "]=========\n";
-
-    // -------- IrcCommand --------
-    oss << "[COMMAND]\n";
-    oss << "raw_line=     '" << cmd.raw_Line << "'\n";
-    oss << "prefix=       '" << cmd.prefix << "'\n";
-    oss << "verb=         '" << cmd.verb << "'\n";
-
-    oss << "params(" << cmd.params.size() << ")=    ";
-    for (size_t i = 0; i < cmd.params.size(); ++i)
-        oss << "[" << cmd.params[i] << "]";
-    oss << "\n";
-
-    oss << "trailing=     '" << cmd.trailing << "'\n";
-
-    // -------- Client --------
-    oss << "[IO]\n";
-    oss << "fd=           " << entry.fd << "\n";
-    oss << "inBuf=       =" << entry.inBuf << "=\n";
-    oss << "outBuf=      =" << entry.outBuf << "=\n";
-
-    // -------- Registration / IRC State --------
-    oss << "[STATE]\n";
-    oss << "passOk=       " << (entry.passOk ? "true" : "false") << "\n";
-    oss << "hasNick=      " << (entry.hasNick ? "true" : "false") << "\n";
-    oss << "hasUser=      " << (entry.hasUser ? "true" : "false") << "\n";
-    oss << "registered=   " << (entry.registered ? "true" : "false") << "\n";
-
-    oss << "nick=         '" << entry.nick << "'\n";
-    oss << "user=         '" << entry.user << "'\n";
-    oss << "realName=     '" << entry.realName << "'\n";
-    oss << "userModes=    '" << entry.userModes << "'\n";
-
-    oss << "===============================\n";
-
-    return oss.str();
-}
 
 IrcCore::IrcCore( const std::string& password, ClientRegistry& clients, ChannelRegistry&  channels )
 : _server_password(password)
@@ -106,25 +55,16 @@ void IrcCore::handle_Line( ClientEntry& entry,
     handle_Command(entry, cmd, out);
 }
 
-void IrcCore::debug_Full( const ClientEntry& entry,
+void IrcCore::trace_Full( const ClientEntry& entry,
                           const IrcCommand& cmd,
                           const char* msg ) const
 {
-    if (!kEnableDebugLogging)
-        return;
-
-    std::cout << "\n========================================\n";
-    _clients.debug_Print_All();
-    _channels.debug_Print_All();
-
-    std::cout << build_cmd_struct_string(entry, cmd);
-    std::cout << msg;
-
-
-    std::cout << "========================================\n";
+    (void)entry;
+    (void)cmd;
+    (void)msg;
 }
 
-const char* IrcCore::debug_Message( handleResult result ) const
+const char* IrcCore::trace_Message( handleResult result ) const
 {
     switch (result)
     {

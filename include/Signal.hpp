@@ -15,7 +15,7 @@ public:
     static int  getFlag( void );
     static void clearFlag( void );
 
-private: // 금지
+private:
     Signal( void );
     ~Signal( void );
     Signal( const Signal& );

@@ -15,7 +15,7 @@ void IrcCore::handle_Join( ClientEntry& entry,
 
     if (channelName.empty() || channelName[0] != '#')
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_No_such_channel(nick, channelName),
                         "[JOIN] bad channel name\n");
         return;
@@ -29,13 +29,13 @@ void IrcCore::handle_Join( ClientEntry& entry,
 
     if (result == JOIN_ALREADY_MEMBER)
     {
-        debug_Full(entry, cmd, "[JOIN] already joined\n");
+        trace_Full(entry, cmd, "[JOIN] already joined\n");
         return;
     }
 
     if (result == JOIN_INVITE_ONLY)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Invite_only_chan(nick, channelName),
                         "[JOIN] invite only channel\n");
         return;
@@ -43,7 +43,7 @@ void IrcCore::handle_Join( ClientEntry& entry,
 
     if (result == JOIN_BAD_KEY)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Bad_channel_key(nick, channelName),
                         "[JOIN] bad key\n");
         return;
@@ -51,7 +51,7 @@ void IrcCore::handle_Join( ClientEntry& entry,
 
     if (result == JOIN_CHANNEL_FULL)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Channel_is_full(nick, channelName),
                         "[JOIN] channel full\n");
         return;
@@ -59,7 +59,7 @@ void IrcCore::handle_Join( ClientEntry& entry,
 
     if (!_channels.join_Channel(channelName, entry.fd))
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_No_such_channel(nick, channelName),
                         "[JOIN] join channel failed\n");
         return;
@@ -85,7 +85,7 @@ void IrcCore::handle_Join( ClientEntry& entry,
     push_Send(out, entry.fd,
               _messages.build_Rpl_End_of_names(nick, channelName));
 
-    debug_Full(entry, cmd, "[JOIN] joined channel\n");
+    trace_Full(entry, cmd, "[JOIN] joined channel\n");
 }
 
 void IrcCore::handle_Part( ClientEntry& entry,
@@ -112,7 +112,7 @@ void IrcCore::handle_Part( ClientEntry& entry,
 
     if (!_channels.remove_Member_And_Cleanup(channelName, entry.fd))
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Not_on_channel(
                             current_Nick(entry.fd),
                             channelName),
@@ -123,7 +123,7 @@ void IrcCore::handle_Part( ClientEntry& entry,
     send_To_Channel(channelName, partMsg, out, -1);
     push_Send(out, entry.fd, partMsg);
 
-    debug_Full(entry, cmd, "[PART] left channel\n");
+    trace_Full(entry, cmd, "[PART] left channel\n");
 }
 
 void IrcCore::handle_Privmsg( ClientEntry& entry,
@@ -134,7 +134,7 @@ void IrcCore::handle_Privmsg( ClientEntry& entry,
 
     if (cmd.params.empty() || cmd.params[0].empty())
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_No_recipient(senderNick, "PRIVMSG"),
                         "[PRIVMSG] recipient missing\n");
         return;
@@ -142,7 +142,7 @@ void IrcCore::handle_Privmsg( ClientEntry& entry,
 
     if (cmd.trailing.empty())
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_No_text_to_send(senderNick),
                         "[PRIVMSG] text missing\n");
         return;
@@ -156,7 +156,7 @@ void IrcCore::handle_Privmsg( ClientEntry& entry,
     {
         if (!_channels.has_Channel(target))
         {
-            reply_And_Debug(entry, cmd, out,
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_No_such_channel(senderNick, target),
                             "[PRIVMSG] no such channel\n");
             return;
@@ -164,14 +164,14 @@ void IrcCore::handle_Privmsg( ClientEntry& entry,
 
         if (!_channels.has_Member(target, entry.fd))
         {
-            reply_And_Debug(entry, cmd, out,
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_Cannot_send_to_chan(senderNick, target),
                             "[PRIVMSG] sender not in channel\n");
             return;
         }
 
         send_To_Channel(target, msg, out, entry.fd);
-        debug_Full(entry, cmd, "[PRIVMSG] sent to channel\n");
+        trace_Full(entry, cmd, "[PRIVMSG] sent to channel\n");
         return;
     }
 
@@ -181,7 +181,7 @@ void IrcCore::handle_Privmsg( ClientEntry& entry,
         return;
 
     push_Send(out, targetClient->fd, msg);
-    debug_Full(entry, cmd, "[PRIVMSG] sent to user\n");
+    trace_Full(entry, cmd, "[PRIVMSG] sent to user\n");
 }
 
 void IrcCore::handle_Topic( ClientEntry& entry,
@@ -209,13 +209,13 @@ void IrcCore::handle_Topic( ClientEntry& entry,
 
         if (topic.empty())
         {
-            reply_And_Debug(entry, cmd, out,
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Rpl_No_topic(nick, channelName),
                             "[TOPIC] no topic\n");
             return;
         }
 
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_Topic(nick, channelName, topic),
                         "[TOPIC] topic viewed\n");
         return;
@@ -234,7 +234,7 @@ void IrcCore::handle_Topic( ClientEntry& entry,
 
     if (!_channels.set_Topic(channelName, cmd.trailing))
     {
-        debug_Full(entry, cmd, "[TOPIC] set topic failed\n");
+        trace_Full(entry, cmd, "[TOPIC] set topic failed\n");
         return;
     }
 
@@ -242,7 +242,7 @@ void IrcCore::handle_Topic( ClientEntry& entry,
         _messages.build_Topic_Message(entry.fd, channelName, cmd.trailing);
 
     send_To_Channel(channelName, topicMsg, out, -1);
-    debug_Full(entry, cmd, "[TOPIC] topic changed\n");
+    trace_Full(entry, cmd, "[TOPIC] topic changed\n");
 }
 
 void IrcCore::handle_Invite( ClientEntry& entry,
@@ -292,7 +292,7 @@ void IrcCore::handle_Invite( ClientEntry& entry,
 
     if (_channels.has_Member(channelName, targetClient->fd))
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_User_on_channel(nick, targetNick, channelName),
                         "[INVITE] target already on channel\n");
         return;
@@ -305,7 +305,7 @@ void IrcCore::handle_Invite( ClientEntry& entry,
     push_Send(out, targetClient->fd,
               _messages.build_Invite_Message(entry.fd, targetNick, channelName));
 
-    debug_Full(entry, cmd, "[INVITE] invite processed\n");
+    trace_Full(entry, cmd, "[INVITE] invite processed\n");
 }
 
 void IrcCore::handle_Kick( ClientEntry& entry,
@@ -370,7 +370,7 @@ void IrcCore::handle_Kick( ClientEntry& entry,
 
     if (!_channels.remove_Member_And_Cleanup(channelName, targetClient->fd))
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_User_not_in_channel(
                             current_Nick(entry.fd),
                             targetNick,
@@ -384,7 +384,7 @@ void IrcCore::handle_Kick( ClientEntry& entry,
     if (targetClient->fd != entry.fd)
         push_Send(out, targetClient->fd, kickMsg);
 
-    debug_Full(entry, cmd, "[KICK] kick processed\n");
+    trace_Full(entry, cmd, "[KICK] kick processed\n");
 }
 
 void IrcCore::handle_User_Mode( ClientEntry& entry,
@@ -397,7 +397,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
     ClientEntry* targetClient = _clients.find_By_Nick(targetNick);
     if (targetClient == NULL || targetClient->fd != entry.fd)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Users_dont_match(nick),
                         "[MODE] cannot inspect or change another user's mode\n");
         return;
@@ -405,7 +405,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
 
     if (cmd.params.size() < 2 || cmd.params[1].empty())
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_User_mode_is(
                             nick,
                             _clients.get_User_Modes(entry.fd)),
@@ -431,7 +431,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
 
         if (currentSign == 0)
         {
-            reply_And_Debug(entry, cmd, out,
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_Umode_unknown_flag(nick),
                             "[MODE] sign missing before user mode\n");
             return;
@@ -439,7 +439,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
 
         if (!is_Supported_User_Mode(modeChar))
         {
-            reply_And_Debug(entry, cmd, out,
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_Umode_unknown_flag(nick),
                             "[MODE] unsupported user mode\n");
             return;
@@ -448,7 +448,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
 
     if (queryOnly)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_User_mode_is(
                             nick,
                             _clients.get_User_Modes(entry.fd)),
@@ -472,7 +472,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
 
         if (!apply_User_Mode(entry.fd, currentSign, modeChar))
         {
-            reply_And_Debug(entry, cmd, out,
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_Umode_unknown_flag(nick),
                             "[MODE] failed to apply user mode\n");
             return;
@@ -483,7 +483,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
 
     if (appliedModes.empty())
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_User_mode_is(
                             nick,
                             _clients.get_User_Modes(entry.fd)),
@@ -494,7 +494,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
     push_Send(out, entry.fd,
               _messages.build_Mode_Message(entry.fd, targetNick, appliedModes, ""));
 
-    debug_Full(entry, cmd, "[MODE] user mode changed\n");
+    trace_Full(entry, cmd, "[MODE] user mode changed\n");
 }
 
 void IrcCore::handle_Mode( ClientEntry& entry,
@@ -531,7 +531,7 @@ void IrcCore::handle_Mode( ClientEntry& entry,
 
     if (cmd.params.size() < 2)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_Channel_mode_is(nick, channelName),
                         "[MODE] channel mode viewed\n");
         return;
@@ -566,7 +566,9 @@ void IrcCore::handle_Mode( ClientEntry& entry,
 
         if (currentSign == 0)
         {
-            reply_And_Debug(entry, cmd, out,
+            send_Applied_Channel_Mode(
+                entry.fd, channelName, appliedModes, appliedParams, out);
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_Unknown_mode(nick, modeChar),
                             "[MODE] sign missing before mode char\n");
             return;
@@ -574,7 +576,9 @@ void IrcCore::handle_Mode( ClientEntry& entry,
 
         if (!is_Supported_Channel_Mode(modeChar))
         {
-            reply_And_Debug(entry, cmd, out,
+            send_Applied_Channel_Mode(
+                entry.fd, channelName, appliedModes, appliedParams, out);
+            reply_And_Trace(entry, cmd, out,
                             _messages.build_Err_Unknown_mode(nick, modeChar),
                             "[MODE] unsupported mode char\n");
             return;
@@ -585,6 +589,8 @@ void IrcCore::handle_Mode( ClientEntry& entry,
         {
             if (paramIndex >= cmd.params.size())
             {
+                send_Applied_Channel_Mode(
+                    entry.fd, channelName, appliedModes, appliedParams, out);
                 reply_Need_More_Params(entry, cmd, out, "MODE", "[MODE] parameter missing\n");
                 return;
             }
@@ -599,6 +605,8 @@ void IrcCore::handle_Mode( ClientEntry& entry,
 
         if (modeResult != MODE_APPLY_OK)
         {
+            send_Applied_Channel_Mode(
+                entry.fd, channelName, appliedModes, appliedParams, out);
             reply_Mode_Error(entry, cmd, out, channelName, modeChar, modeParam, modeResult);
             return;
         }
@@ -609,17 +617,15 @@ void IrcCore::handle_Mode( ClientEntry& entry,
 
     if (appliedModes.empty())
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Rpl_Channel_mode_is(nick, channelName),
                         "[MODE] no applied mode\n");
         return;
     }
 
-    const std::string modeMsg =
-        _messages.build_Mode_Message(entry.fd, channelName, appliedModes, appliedParams);
-
-    send_To_Channel(channelName, modeMsg, out, -1);
-    debug_Full(entry, cmd, "[MODE] mode changed\n");
+    send_Applied_Channel_Mode(
+        entry.fd, channelName, appliedModes, appliedParams, out);
+    trace_Full(entry, cmd, "[MODE] mode changed\n");
 }
 
 void IrcCore::handle_Quit( ClientEntry& entry,
@@ -631,5 +637,5 @@ void IrcCore::handle_Quit( ClientEntry& entry,
         reason = cmd.trailing;
 
     disconnect_Client(entry.fd, reason, out);
-    debug_Full(entry, cmd, "[QUIT] quit processed\n");
+    trace_Full(entry, cmd, "[QUIT] quit processed\n");
 }

@@ -2,8 +2,6 @@
 
 #include <cstring>
 
-#include <iostream>
-#include <string>
 
 volatile sig_atomic_t Signal::_flag = 0;
 
@@ -32,19 +30,7 @@ void Signal::setup( void )
 
 int Signal::getFlag( void )
 {
-    int sig_flag = _flag;
-    if (!sig_flag) return sig_flag;
-    // 임시 테스트용 서버쪽 가독성때문에 빼놓음
-    if (sig_flag == SIGINT)      
-        std::cout << "[signal] SIGINT received -> stopping...\n";
-    else if (sig_flag == SIGTERM)
-        std::cout << "[signal] SIGTERM received -> stopping...\n";
-    else if (sig_flag == SIGQUIT)
-        std::cout << "[signal] SIGQUIT received -> stopping...\n";
-    else                    
-        std::cout << "[signal] signal(" << sig_flag << ") received -> stopping...\n";
-
-    return sig_flag;
+    return _flag;
 }
 
 void Signal::clearFlag( void )

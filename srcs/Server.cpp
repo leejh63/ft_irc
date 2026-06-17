@@ -14,11 +14,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <iostream>
 
 namespace
 {
-    const bool  kEnableDebugLogging = false;
     const char* kConnectionClosedReason = "Connection closed";
     const char* kSendQueueFullReason = "Send queue full";
 
@@ -32,18 +30,10 @@ namespace
     }
 }
 
-void Server::debug_State( const std::string& msg, int fd ) const
+void Server::trace_State( const std::string& msg, int fd ) const
 {
-    if (!kEnableDebugLogging)
-        return;
-
-    std::cout << "\n========================================\n";
-    std::cout << msg << " fd=" << fd << "\n";
-
-    _clientRegistry.debug_Print_All();
-    _channelRegistry.debug_Print_All();
-
-    std::cout << "========================================\n";
+    (void)msg;
+    (void)fd;
 }
 
 Server::Server( int port, const std::string& password )
@@ -133,43 +123,31 @@ bool Server::is_Would_Block( int e )
 
 void Server::accept_Pending_Clients( void )
 {
-    while (true)
+    struct sockaddr_in clientAddr;
+    socklen_t          clientAddrLen = sizeof(clientAddr);
+
+    // Accept a single connection per poll() notification. poll() is
+    // level-triggered, so if more connections are queued, POLLIN on the
+    // listen fd stays set and we are called again next iteration.
+    const int clientFd = accept(_listenFd.get(),
+                                (struct sockaddr*)&clientAddr,
+                                &clientAddrLen);
+    if (clientFd < 0)
+        return;
+
+    try
     {
-        struct sockaddr_in clientAddr;
-        socklen_t          clientAddrLen = sizeof(clientAddr);
+        set_Non_Blocking(clientFd);
 
-        const int clientFd = accept(_listenFd.get(),
-                                    (struct sockaddr*)&clientAddr,
-                                    &clientAddrLen);
-        if (clientFd < 0)
-        {
-            const int e = errno;
-            if (is_Would_Block(e))
-                break;
-            throw std::runtime_error(err_word(e, EF_ACCEPT));
-        }
+        if (!_clientRegistry.add_Client(clientFd))
+            throw std::runtime_error("client registry add failed");
 
-        try
-        {
-            set_Non_Blocking(clientFd);
-
-            if (!_clientRegistry.add_Client(clientFd))
-                throw std::runtime_error("client registry add failed");
-
-            _monitor.add_Client(clientFd);
-        }
-        catch (const std::exception& e)
-        {
-            _clientRegistry.remove_Client(clientFd);
-            close(clientFd);
-
-            if (kEnableDebugLogging)
-                std::cout << e.what() << "\n";
-            continue;
-        }
-
-        if (kEnableDebugLogging)
-            std::cout << "Server: accepted fd=" << clientFd << "\n";
+        _monitor.add_Client(clientFd);
+    }
+    catch (const std::exception& e)
+    {
+        _clientRegistry.remove_Client(clientFd);
+        close(clientFd);
     }
 }
 
@@ -196,10 +174,7 @@ bool Server::close_Client( size_t idx )
     _clientRegistry.remove_Client(fd);
     _monitor.remove_At(idx);
 
-    debug_State("[Server::close_Client] after channel cleanup", fd);
-
-    if (kEnableDebugLogging)
-        std::cout << "Server: remove! idx / left: " << _monitor.size() - 1 << "\n";
+    trace_State("[Server::close_Client] after channel cleanup", fd);
     return true;
 }
 
@@ -230,10 +205,6 @@ bool Server::dispatch_Actions( int sourceFd,
                 saturatedClients.insert(actions[i].fd);
                 continue;
             }
-
-            if (result == ENQUEUE_NO_TARGET && kEnableDebugLogging)
-                std::cout << "Server: enqueue skipped missing fd="
-                          << actions[i].fd << "\n";
             continue;
         }
 
@@ -327,48 +298,38 @@ bool Server::read_From_Client( size_t idx )
     ClientEntry* entry = _clientRegistry.find_By_Fd(fd);
     if (entry == NULL)
     {
-        if (kEnableDebugLogging)
-            std::cout << "Server: recv internal desync fd=" << fd << "\n";
         return close_Client(idx);
     }
 
     char buf[MAX_INBUF];
 
-    while (true)
+    // Single recv() per poll() notification. poll() is level-triggered:
+    // if the socket still holds unread data, POLLIN stays set and we are
+    // called again. This avoids ever inspecting errno after recv().
+    const ssize_t bytes = recv(fd, buf, sizeof(buf), 0);
+
+    if (bytes == 0)
+        return disconnect_Client(idx, kConnectionClosedReason);
+
+    if (bytes < 0)
+        return false;
+
+    entry->inBuf.append(buf, bytes);
+
+    if (entry->inBuf.size() > MAX_INBUF)
+        return disconnect_Client(idx, kConnectionClosedReason);
+
+    std::string line;
+    while (extract_Line(entry->inBuf, line))
     {
-        const ssize_t bytes = recv(fd, buf, sizeof(buf), 0);
-
-        if (bytes > 0)
-        {
-            entry->inBuf.append(buf, bytes);
-
-            if (entry->inBuf.size() > MAX_INBUF)
-                return disconnect_Client(idx, kConnectionClosedReason);
-
-            std::string line;
-            while (extract_Line(entry->inBuf, line))
-            {
-                if (line.size() > MAX_IRC_LINE)
-                    return disconnect_Client(idx, kConnectionClosedReason);
-
-                std::vector<ServerAction> actions;
-                _core.handle_Line(*entry, line, actions);
-
-                if (dispatch_Actions(fd, actions))
-                    return true;
-            }
-            continue;
-        }
-
-        if (bytes == 0)
+        if (line.size() > MAX_IRC_LINE)
             return disconnect_Client(idx, kConnectionClosedReason);
 
-        const int e = errno;
-        if (is_Would_Block(e))
-            break;
-        if (e == EINTR)
-            continue;
-        return disconnect_Client(idx, kConnectionClosedReason);
+        std::vector<ServerAction> actions;
+        _core.handle_Line(*entry, line, actions);
+
+        if (dispatch_Actions(fd, actions))
+            return true;
     }
 
     return false;
@@ -380,8 +341,6 @@ bool Server::flush_Client_Output( size_t idx )
     ClientEntry* entry = _clientRegistry.find_By_Fd(fd);
     if (entry == NULL)
     {
-        if (kEnableDebugLogging)
-            std::cout << "Server: send internal desync fd=" << fd << "\n";
         return close_Client(idx);
     }
 
@@ -391,35 +350,26 @@ bool Server::flush_Client_Output( size_t idx )
         return false;
     }
 
-    while (!entry->outBuf.empty())
-    {
-        const ssize_t bytes = send(fd,
-                                   entry->outBuf.c_str(),
-                                   entry->outBuf.size(),
-                                   0);
+    // Single send() per POLLOUT notification. If the kernel buffer cannot
+    // take everything, POLLOUT stays armed and poll() signals us again;
+    // a dead peer surfaces through POLLHUP/POLLERR (handled before us) or
+    // a 0-byte recv, so we never need to inspect errno after send().
+    const ssize_t bytes = send(fd,
+                               entry->outBuf.c_str(),
+                               entry->outBuf.size(),
+                               0);
 
-        if (bytes > 0)
-        {
-            entry->outBuf.erase(0, static_cast<size_t>(bytes));
-            continue;
-        }
-
-        if (bytes == 0)
-            return disconnect_Client(idx, kConnectionClosedReason);
-
-        const int e = errno;
-        if (is_Would_Block(e))
-            return false;
-        if (e == EINTR)
-            continue;
-
-        if (kEnableDebugLogging)
-            std::cout << "Server: send error fd=" << fd
-                      << " err=" << err_word(e, EF_SEND) << "\n";
+    if (bytes == 0)
         return disconnect_Client(idx, kConnectionClosedReason);
-    }
 
-    _monitor.disable_Write(fd);
+    if (bytes < 0)
+        return false;
+
+    entry->outBuf.erase(0, static_cast<size_t>(bytes));
+
+    if (entry->outBuf.empty())
+        _monitor.disable_Write(fd);
+
     return false;
 }
 

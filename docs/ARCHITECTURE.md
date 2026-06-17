@@ -1,7 +1,7 @@
 # ft_irc 아키텍처 / 전체 흐름 정리
 
-이 문서는 현재 정리된 제출본 코드베이스를 기준으로,
-`ft_irc`의 **전체 구조**, **런타임 흐름**, **클래스 책임 분리**, **명령 처리 경로**를
+이 문서는 `ft_irc` 코드베이스를 기준으로,
+서버의 **전체 구조**, **런타임 흐름**, **클래스 책임 분리**, **명령 처리 경로**를
 한눈에 파악할 수 있도록 정리한 아키텍처 문서다.
 
 기준 파일:
@@ -20,7 +20,7 @@
 
 ## 1. 한 줄 요약
 
-이 서버는 크게 아래 4축으로 움직인다.
+이 서버는 크게 아래 네 계층으로 구성된다.
 
 1. **Server**
    - 소켓 생성
@@ -42,7 +42,7 @@
    - `IrcParser`: raw line → `IrcCommand`
    - `IrcMessageBuilder`: numeric / command 메시지 직렬화
 
-즉, 이 코드는
+전체 구조를 요약하면
 
 > **Transport(Server) / Domain(IrcCore) / State(Registry) / Protocol(Parser, Builder)**
 
@@ -84,7 +84,7 @@ flowchart LR
 
 ### 해석
 
-- `main.cpp`는 거의 조립만 한다.
+- `main.cpp`는 프로그램 진입점과 초기 실행 흐름을 담당한다.
 - `Server`가 중심 런타임이다.
 - `IrcCore`는 도메인 규칙 담당이다.
 - `ClientRegistry`, `ChannelRegistry`는 상태 저장소다.
@@ -92,7 +92,7 @@ flowchart LR
 - `IrcCore`는 네트워크 호출 대신 `ServerAction`을 만든다.
 - `Server`가 그 action을 실제 I/O로 실행한다.
 
-이게 이 코드의 핵심 아키텍처 포인트다.
+이 구조가 전체 데이터 흐름의 기준이 된다.
 
 ---
 
@@ -148,7 +148,7 @@ flowchart TB
 
 | 구역 | 핵심 파일 | 역할 |
 |---|---|---|
-| Entry | `main.cpp` | 인자 검증 후 `Server` 실행 |
+| Entry | `main.cpp` | 인자 검사 후 `Server` 실행 |
 | Runtime | `Server.cpp` | socket/poll/accept/read/write/close |
 | Runtime | `SocketMonitor.cpp` | `pollfd` 목록 관리 |
 | Runtime | `Fd.cpp` | listen fd 래퍼 |
@@ -234,11 +234,11 @@ flowchart TD
    - `inBuf`에 누적한 뒤 줄 단위로 뽑는다.
 
 2. **출력은 큐 기반**
-   - `send()`를 바로 때리는 구조가 아니라 `outBuf`에 쌓는다.
+   - `send()`를 즉시 호출하는 구조가 아니라 `outBuf`에 쌓는다.
    - `POLLOUT` 준비가 되었을 때만 밀어낸다.
 
-즉, 이 서버는 mandatory 수준 치고 꽤 정석적인
-**non-blocking buffered I/O** 구조를 갖고 있다.
+즉, 이 서버는 입력과 출력을 분리한
+**non-blocking buffered I/O** 구조로 동작한다.
 
 ---
 
@@ -291,7 +291,7 @@ classDiagram
 - `passOk`, `hasNick`, `hasUser`, `registered`는 등록 상태
 - `nick`, `user`, `realName`, `userModes`는 IRC 사용자 상태
 
-이 프로젝트는 규모상 이 둘을 분리하지 않고 `ClientEntry` 하나에 모아두었다.
+이 프로젝트는 해당 상태들을 `ClientEntry` 하나에서 함께 관리한다.
 
 ---
 
@@ -308,7 +308,7 @@ flowchart TD
     F --> G{known verb?}
     G -- no --> H["handle_Unknown"]
     G -- yes --> I{allowed before register?}
-    I -- no --> J["ERR_NOTREGISTERED style path"]
+    I -- no --> J["ERR_NOTREGISTERED 응답 경로"]
     I -- yes --> K["call handler"]
 
     K --> L["Registration handlers"]
@@ -328,7 +328,7 @@ flowchart LR
     B --> B1["PASS / NICK / USER"]
     C --> C1["CAP / PING / PONG / WHO / ERROR / UNKNOWN"]
     D --> D1["JOIN / PART / PRIVMSG / TOPIC / INVITE / KICK / MODE / QUIT"]
-    E --> E1["공통 검증 / route table / mode apply / helper"]
+    E --> E1["공통 검사 / route table / mode apply / helper"]
 ```
 
 ### 구조적으로 보면
@@ -337,10 +337,10 @@ flowchart LR
 - `IrcCoreRegistration.cpp`는 등록 단계 명령
 - `IrcCoreProtocol.cpp`는 보조 프로토콜
 - `IrcCoreChannel.cpp`는 채널/메시징 명령
-- `IrcCoreSupport.cpp`는 공통 검증과 helper
+- `IrcCoreSupport.cpp`는 공통 검사와 helper
 
-즉, 도메인 로직은 한 클래스(`IrcCore`)에 있지만,
-**구현 파일 단위로는 역할 분할**을 해 둔 상태다.
+즉, 도메인 로직은 `IrcCore`를 중심으로 두고,
+**구현 파일 단위로 역할을 나누어** 관리한다.
 
 ---
 
@@ -350,31 +350,30 @@ flowchart LR
 flowchart TD
     A["client connected"] --> B["PASS"]
     B --> C{password ok?}
-    C -- no --> D["ERR_PASSWDMISMATCH"]
+    C -- no --> D["ERR_PASSWDMISMATCH 응답"]
     C -- yes --> E["passOk = true"]
 
     E --> F["NICK"]
     F --> G{nick valid / available?}
-    G -- no --> H["ERR_ERRONEUSNICKNAME or ERR_NICKNAMEINUSE"]
+    G -- no --> H["닉네임 오류 응답"]
     G -- yes --> I["hasNick = true"]
 
     I --> J["USER"]
     J --> K{params valid?}
-    K -- no --> L["ERR_NEEDMOREPARAMS"]
+    K -- no --> L["ERR_NEEDMOREPARAMS 응답"]
     K -- yes --> M["hasUser = true"]
 
     M --> N["try_Register"]
     N --> O{passOk && hasNick && hasUser?}
     O -- yes --> P["registered = true"]
-    P --> Q["001 Welcome reply"]
+    P --> Q["001 welcome reply"]
     O -- no --> R["wait remaining steps"]
 ```
 
 ### 이 코드의 특징
 
 - `PASS`를 먼저 받아야 `NICK`, `USER`가 허용되는 구조다.
-- 즉, registration state machine이 꽤 보수적이다.
-- mandatory 기준으로는 통제하기 쉽지만, 일반적인 IRC 호환성은 약간 좁아진다.
+- 등록 완료 여부는 `try_Register()`에서 한 번 더 확인한다.
 
 ---
 
@@ -420,9 +419,9 @@ classDiagram
 flowchart TD
     A["JOIN #chan key?"] --> B["check_Join"]
     B --> C{already member?}
-    C -- yes --> D["ignore"]
+    C -- yes --> D["처리하지 않음"]
     C -- no --> E{invite/key/limit ok?}
-    E -- no --> F["error reply"]
+    E -- no --> F["오류 응답"]
     E -- yes --> G["ChannelRegistry join_Channel"]
     G --> H["first member => operator"]
     H --> I["build JOIN msg"]
@@ -439,14 +438,14 @@ flowchart TD
     B -- no --> D["user path"]
 
     C --> E{channel exists?}
-    E -- no --> F["ERR_NOSUCHCHANNEL"]
+    E -- no --> F["ERR_NOSUCHCHANNEL 응답"]
     E -- yes --> G{sender is member?}
-    G -- no --> H["ERR_CANNOTSENDTOCHAN"]
+    G -- no --> H["ERR_CANNOTSENDTOCHAN 응답"]
     G -- yes --> I["build channel privmsg"]
     I --> J["send_To_Channel except sender"]
 
     D --> K{target nick exists?}
-    K -- no --> L["ERR_NOSUCHNICK"]
+    K -- no --> L["ERR_NOSUCHNICK 응답"]
     K -- yes --> M["push_Send to target fd"]
 ```
 
@@ -455,9 +454,9 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["TOPIC #chan optional-topic"] --> B{channel exists?}
-    B -- no --> C["ERR_NOSUCHCHANNEL"]
+    B -- no --> C["ERR_NOSUCHCHANNEL 응답"]
     B -- yes --> D{sender is member?}
-    D -- no --> E["ERR_NOTONCHANNEL"]
+    D -- no --> E["ERR_NOTONCHANNEL 응답"]
     D -- yes --> F{has trailing?}
 
     F -- no --> G["topic query"]
@@ -466,7 +465,7 @@ flowchart TD
     H -- no --> J["RPL_TOPIC"]
 
     F -- yes --> K{can change topic? +t/op check}
-    K -- no --> L["ERR_CHANOPRIVSNEEDED"]
+    K -- no --> L["ERR_CHANOPRIVSNEEDED 응답"]
     K -- yes --> M["set_Topic"]
     M --> N["build TOPIC msg"]
     N --> O["broadcast"]
@@ -523,9 +522,9 @@ sequenceDiagram
 
 - `IrcCore`는 도메인 규칙 담당
 - `Server`는 실행 담당
-- 이 분리 덕분에 `IrcCore`가 소켓 계층에 덜 묶인다
+- `IrcCore`는 소켓 계층과 직접 결합하지 않고 명령 처리에 집중한다
 
-이건 이 코드에서 꽤 괜찮은 부분이다.
+이 지점에서 네트워크 처리와 명령 처리의 책임이 분리된다.
 
 ---
 
@@ -574,15 +573,12 @@ sequenceDiagram
     Server->>OS: close(fd)
 ```
 
-### 여기서 보이는 구조적 특징
+### 정리 흐름
 
-- `IrcCore`도 채널 탈퇴 정리를 한다.
-- `Server`도 `close_Client()`에서 채널 정리를 한 번 더 한다.
+- `IrcCore`는 IRC 관점에서 `QUIT` message와 채널 탈퇴 처리를 준비한다.
+- `Server`는 실제 fd close와 registry 정리를 수행한다.
 
-즉, disconnect cleanup의 책임이
-**Core와 Server 양쪽에 걸쳐 있다.**
-
-이건 현재 구조를 이해할 때 꼭 알아야 하는 포인트다.
+이 흐름은 명령 처리 결과와 실제 소켓 종료를 분리하기 위한 구조다.
 
 ---
 
@@ -605,72 +601,21 @@ flowchart LR
 
 ### 정리
 
-이 프로젝트는 거의 모든 실제 상태가
-Registry에 들어 있다.
+서버의 주요 상태는
+Registry 계층에서 관리된다.
 
 - `Server`: 런타임 제어
 - `IrcCore`: 상태를 읽고 쓰는 규칙 엔진
 - `Registry`: 실제 데이터 저장소
 
 즉, 상태 중심으로 보면
-`ClientRegistry`, `ChannelRegistry`가 사실상 서버의 메모리 DB다.
+`ClientRegistry`, `ChannelRegistry`가 서버 상태 저장 계층이다.
 
 ---
 
-## 15. 이 아키텍처의 장점
+## 15. 코드 읽기 추천 순서
 
-### 15-1. 과설계가 아니다
-- 클래스 수가 지나치게 많지 않다.
-- mandatory 프로젝트 규모에 맞는 분리다.
-
-### 15-2. transport / domain 분리가 있다
-- `IrcCore`가 `send()`를 직접 호출하지 않는다.
-- `ServerAction` 기반으로 실행과 판단을 분리했다.
-
-### 15-3. non-blocking 구조가 비교적 탄탄하다
-- 입력 누적 버퍼
-- 출력 누적 버퍼
-- `POLLOUT` 제어
-
-### 15-4. Registry 구조가 읽기 쉽다
-- client / channel 상태가 한눈에 보인다.
-
----
-
-## 16. 이 아키텍처를 볼 때 같이 기억해야 할 구현 정책
-
-이 문서는 구조 설명 문서지만, 현재 동작을 정확히 이해하려면 아래 정책도 같이 알아두는 것이 좋다.
-
-### 16-1. channel operator lifecycle
-- `MODE -o`에서는 마지막 operator 제거를 막는다.
-- `PART`, `QUIT`, disconnect, `KICK`으로 마지막 operator가 채널에서 사라지면 `ChannelRegistry`가 남은 member 중 한 명을 자동 operator로 승격한다.
-- 이 승격은 채널 관리 불능 상태를 막기 위한 registry-level 불변식 보정이다. 별도의 server-origin `MODE +o` broadcast는 현재 구현하지 않는다.
-
-### 16-2. disconnect cleanup 책임
-- `IrcCore::disconnect_Client()`는 QUIT 전파 대상 수집과 채널 탈퇴 처리를 수행한다.
-- `Server::close_Client()`도 fd close 직전에 registry cleanup을 한 번 더 호출한다.
-- `ChannelRegistry`의 제거 함수가 idempotent하게 동작하므로 중복 cleanup이 치명적이지는 않지만, 책임 경계는 더 정리할 여지가 있다.
-
-### 16-3. trailing parameter 직렬화
-- parser는 `hasTrailing`을 보존한다.
-- builder의 user-command 생성 함수도 `hasTrailing`을 인자로 받아 `TOPIC #chan :` 같은 빈 trailing 케이스를 표현할 수 있다.
-- 각 command builder에서 trailing 필요 여부를 명확히 넘겨야 wire format이 정확하게 유지된다.
-
-### 16-4. nickname matching
-- nick 중복 검사와 nick lookup은 `ClientRegistry`에서 canonical 비교로 처리한다.
-- ASCII 대소문자 차이와 일부 IRC-style bracket mapping을 접어 `alice` / `Alice` 같은 case-only 중복을 막는다.
-
-### 16-5. PASS 정책
-- 최종 등록 전 `PASS`가 다시 들어오면 password를 재평가한다.
-- 잘못된 repeated `PASS`는 `passOk`를 false로 되돌려 이후 `NICK` / `USER` 진행을 막는다.
-
-즉, 구조는 유지하면서 **채널 operator 불변식, repeated PASS, nickname canonical matching, empty trailing 처리**를 보강한 상태다.
-
----
-
-## 17. 코드 읽기 추천 순서
-
-이 프로젝트를 처음부터 다시 읽는다면 이 순서가 제일 좋다.
+이 프로젝트를 처음부터 읽는다면 다음 순서가 자연스럽다.
 
 ```mermaid
 flowchart TD
@@ -689,15 +634,15 @@ flowchart TD
 
 ### 이유
 
-- 먼저 **런타임 축(Server)** 을 잡아야 전체 데이터 흐름이 보인다.
+- 먼저 **런타임 축(Server)** 을 보면 전체 데이터 흐름을 잡기 쉽다.
 - 그 다음 **상태 저장소(Registry)** 를 봐야 도메인 로직이 이해된다.
 - 마지막에 **Core / Parser / Builder** 를 보면 명령 처리 전체가 연결된다.
 
 ---
 
-## 18. 최종 요약
+## 16. 최종 요약
 
-이 코드의 전체 그림을 짧게 정리하면 아래와 같다.
+전체 파이프라인은 아래와 같이 정리할 수 있다.
 
 ```mermaid
 flowchart LR
@@ -717,14 +662,4 @@ flowchart LR
 
 > **입력 바이트 → 라인 파싱 → 명령 해석 → 상태 변경 → 메시지 생성 → action 반환 → 실제 송신**
 
-이게 이 서버의 전체 파이프라인이다.
-
----
-
-## 19. 한 문장 평가
-
-이 구조는
-
-- mandatory 과제 치고는 **꽤 괜찮게 분리된 구조**이고,
-- `poll` 기반 non-blocking 서버의 기본기를 잘 잡았으며,
-- 다만 **채널 불변식과 일부 protocol 직렬화 디테일은 아직 덜 다듬어진 상태**라고 볼 수 있다.
+이 흐름이 서버의 전체 파이프라인이다.

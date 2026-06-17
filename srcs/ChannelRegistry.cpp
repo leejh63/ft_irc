@@ -1,7 +1,5 @@
 #include "ChannelRegistry.hpp"
 
-#include <iostream> // 디버깅용
-
 namespace
 {
     ChannelEntry make_Channel_Entry( const std::string& name )
@@ -53,53 +51,6 @@ namespace
         channel.invited.erase(fd);
         ensure_Channel_Has_Operator(channel);
     }
-}
-
-void ChannelRegistry::debug_Print_All( void ) const
-{
-    std::cout << "\n====== CHANNEL STATE ======\n";
-
-    if (_channels.empty())
-    {
-        std::cout << "(no channels)\n";
-        std::cout << "===========================\n";
-        return;
-    }
-
-    for (std::map<std::string, ChannelEntry>::const_iterator it = _channels.begin();
-         it != _channels.end(); ++it)
-    {
-        const ChannelEntry& ch = it->second;
-
-        std::cout << "ChannelEntry: " << ch.name << "\n";
-        std::cout << "topic: " << ch.topic << "\n";
-        std::cout << "  Members: ";
-        for (std::set<int>::const_iterator m = ch.members.begin();
-             m != ch.members.end(); ++m)
-            std::cout << *m << " ";
-        std::cout << "\n";
-
-        std::cout << "  Operators: ";
-        for (std::set<int>::const_iterator o = ch.operators.begin();
-             o != ch.operators.end(); ++o)
-            std::cout << *o << " ";
-        std::cout << "\n";
-
-        std::cout << "  Invited(" << ch.invited.size() << "): ";
-        for (std::set<int>::const_iterator it = ch.invited.begin();
-            it != ch.invited.end(); ++it)
-            std::cout << *it << " ";
-        std::cout << "\n";
-
-        std::cout << "  InviteOnly: " << (ch.inviteOnly ? "true" : "false") << "\n";
-        std::cout << "  TopicOpOnly: " << (ch.topicOpOnly ? "true" : "false") << "\n";
-        std::cout << "  hasKey: " << (ch.hasKey ? "true" : "false") << "\n";
-        std::cout << "  key: " << (ch.key.empty()  ? "none" : ch.key) << "\n";
-        std::cout << "  hasLimit: " << (ch.hasLimit ? "true" : "false") << "\n";
-        std::cout << "  userLimit: " << ch.userLimit << "\n";
-    }
-
-    std::cout << "===========================\n";
 }
 
 ChannelRegistry::ChannelRegistry( void )

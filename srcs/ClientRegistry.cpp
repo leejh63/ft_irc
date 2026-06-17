@@ -1,7 +1,6 @@
 #include "ClientRegistry.hpp"
 
 #include <algorithm>
-#include <iostream>
 
 namespace
 {
@@ -83,36 +82,6 @@ namespace
     {
         modes.erase(std::remove(modes.begin(), modes.end(), mode), modes.end());
     }
-}
-
-void ClientRegistry::debug_Print_All( void ) const
-{
-    std::cout << "\n====== CLIENT STATE ======\n";
-
-    if (_clients.empty())
-    {
-        std::cout << "(no clients)\n";
-        std::cout << "==========================\n";
-        return;
-    }
-
-    for (std::map<int, ClientEntry>::const_iterator it = _clients.begin();
-         it != _clients.end(); ++it)
-    {
-        const ClientEntry& entry = it->second;
-
-        std::cout << "fd=" << entry.fd << "\n"
-                  << " passOk=" << entry.passOk << "\n"
-                  << " hasNick=" << entry.hasNick << "\n"
-                  << " hasUser=" << entry.hasUser << "\n"
-                  << " registered=" << entry.registered << "\n"
-                  << " nick='" << entry.nick << "'\n"
-                  << " user='" << entry.user << "'\n"
-                  << " realName='" << entry.realName << "'\n"
-                  << " userModes='" << entry.userModes << "'\n";
-    }
-
-    std::cout << "==========================\n";
 }
 
 ClientRegistry::ClientRegistry( void )

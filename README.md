@@ -1,56 +1,19 @@
-*This project has been created as part of the 42 curriculum by jaeholee.*
+*This project has been created as part of the 42 curriculum by Team MaumdaeRo.*
 
 # ft_irc
 
 ## Description
 
-`ft_irc` is a small IRC server written in C++98 for the 42 `ft_irc` mandatory subject.
-It runs as a single-process, non-blocking TCP server and uses one `poll()`-based event loop for accepting connections, reading client input, and flushing buffered output.
+`ft_irc` is an IRC server written in C++98.
+It accepts multiple TCP clients, performs IRC registration, manages channels, and implements the required channel-operator commands.
 
-The project is organized around four clear layers:
-
-- `Server`: socket lifecycle, `poll()`, buffered I/O, and connection management
-- `IrcCore`: IRC command validation, registration flow, channel rules, and generated server actions
-- `ClientRegistry` / `ChannelRegistry`: persistent client and channel state
-- `IrcParser` / `IrcMessageBuilder`: IRC line parsing and wire-format message construction
-
-A deeper explanation of the structure, data flow, and layer boundaries is available in [`ARCHITECTURE.md`](ARCHITECTURE.md).
-
-## Implemented Features
-
-### Mandatory IRC behavior
-
-- password-based connection registration with `PASS`
-- nickname registration and nickname change with `NICK`
-- user registration with `USER`
-- channel join / part with `JOIN` and `PART`
-- private messaging to users and channels with `PRIVMSG`
-- operator commands: `KICK`, `INVITE`, `TOPIC`, `MODE`
-- channel modes: `i`, `t`, `k`, `o`, `l`
-- minimal `QUIT`, `PING`, `PONG`, `CAP`, and `WHO` support for practical client compatibility
-
-### Runtime behavior
-
-- one `poll()` event loop for accept, read, and write
-- non-blocking listening socket and non-blocking client sockets
-- incremental line reconstruction for partial packet input
-- buffered outgoing writes with `POLLOUT` enable/disable control
-- disconnect propagation through a unified `QUIT` flow
-- slow-client protection by disconnecting clients whose send queue exceeds the configured output-buffer limit
-
-### Defensive edge-case handling
-
-- a bad repeated `PASS` before final registration clears the previous password acceptance state
-- nickname lookup and duplicate checks are canonicalized so case-only duplicates such as `alice` and `Alice` cannot coexist
-- when the last channel operator leaves through `PART`, `QUIT`, disconnect, or `KICK`, one remaining member is automatically promoted to keep the channel manageable
-- self-`KICK` no longer queues the same `KICK` message twice to the requester/target client
-- empty trailing parameters used by commands such as `TOPIC #room :` are preserved
+The server uses a single `poll()`-based event loop. The listening socket and every client socket are configured as non-blocking file descriptors. Incoming data is buffered until a complete IRC line is available, and outgoing data is buffered until the socket is ready for writing.
 
 ## Instructions
 
 ### Build
 
-Run `make` from the project root, where this `README.md` and the `Makefile` are located.
+Run `make` from the project root.
 
 ```bash
 make
@@ -83,17 +46,13 @@ Example:
 ./ircserv 6667 pass123!
 ```
 
-### Reference client
-
-The practical reference client used during local verification is `irssi`.
+### Connect with `irssi`
 
 ```bash
 irssi -c 127.0.0.1 -p 6667 -w pass123! -n tester
 ```
 
-### Quick manual test
-
-You can also verify the server with `nc`:
+### Connect with `nc`
 
 ```bash
 nc -C 127.0.0.1 6667
@@ -104,77 +63,45 @@ JOIN #room
 PRIVMSG #room :hello world
 ```
 
+## Implemented Features
+
+- IRC registration: `PASS`, `NICK`, `USER`
+- Channel commands: `JOIN`, `PART`, `PRIVMSG`, `QUIT`
+- Operator commands: `KICK`, `INVITE`, `TOPIC`, `MODE`
+- Channel modes: `i`, `t`, `k`, `o`, `l`
+- Client compatibility commands: `PING`, `PONG`, `CAP`, `WHO`
+- Non-blocking socket handling with one `poll()` loop
+- Buffered input and output handling for partial reads and writes
+- Channel and client cleanup when a client leaves or disconnects
+
 ## Project Layout
 
 ```text
 Makefile
 README.md
-ARCHITECTURE.md
-FIX_VERIFICATION.md
 include/
-  Server.hpp
-  SocketMonitor.hpp
-  Fd.hpp
-  ClientEntry.hpp
-  ClientRegistry.hpp
-  ChannelEntry.hpp
-  ChannelRegistry.hpp
-  IrcCommand.hpp
-  ServerAction.hpp
-  IrcParser.hpp
-  IrcCore.hpp
-  IrcMessageBuilder.hpp
-  IrcServerInfo.hpp
 srcs/
-  Server.cpp
-  SocketMonitor.cpp
-  Fd.cpp
-  ClientRegistry.cpp
-  ChannelRegistry.cpp
-  IrcParser.cpp
-  IrcCore.cpp
-  IrcCoreSupport.cpp
-  IrcCoreRegistration.cpp
-  IrcCoreProtocol.cpp
-  IrcCoreChannel.cpp
-  IrcMessageBuilder.cpp
-  IrcServerInfo.cpp
-  Signal.cpp
-  Utils.cpp
-  main.cpp
+docs/
+  DESIGN.md
+  COMMANDS.md
+  MANUAL_CHECKS.md
+  ARCHITECTURE.md
 ```
 
-## Design Notes
+Additional notes are placed in `docs/`:
 
-- Transport logic and IRC domain rules are separated.
-- `IrcCore` does not call `send()` or `close()` directly; it produces `ServerAction` objects that `Server` executes.
-- Client transport state and IRC registration state are intentionally unified into one `ClientEntry` to keep the project readable at this size.
-- Channel membership, operator state, invite state, topic, key, and limit are centralized in `ChannelRegistry`.
-- `SocketMonitor` isolates `pollfd` storage from the rest of the server loop.
-
-## Documentation
-
-- High-level architecture and flow: [`ARCHITECTURE.md`](ARCHITECTURE.md)
-- Fix verification notes: [`FIX_VERIFICATION.md`](FIX_VERIFICATION.md)
-- Project subject: `ft_irc.pdf`
+- `docs/DESIGN.md`: module responsibilities and server flow
+- `docs/COMMANDS.md`: supported command behavior and channel modes
+- `docs/MANUAL_CHECKS.md`: manual command flows for checking the server with raw IRC commands
+- `docs/ARCHITECTURE.md`: in-depth architecture walkthrough with flow diagrams and a code-reading guide
 
 ## Resources
 
 - RFC 1459: Internet Relay Chat Protocol
 - RFC 2812: Internet Relay Chat Client Protocol
-- `man 2 poll`
-- `man 2 socket`
-- `man 2 recv`
-- `man 2 send`
-- `man 2 fcntl`
+- Linux manual pages: `poll`, `socket`, `bind`, `listen`, `accept`, `recv`, `send`, `fcntl`
+- `irssi` manual pages and client behavior
 
-## AI Usage
+### AI usage
 
-AI was used as a review and refactoring assistant for:
-
-- checking the mandatory subject against the implementation
-- evaluating structure, naming, and layer boundaries
-- identifying edge cases in registration, channel operator lifecycle, nickname matching, and disconnect handling
-- improving readability without changing the intended architecture
-
-All suggestions were manually reviewed, adapted to the project, and tested locally.
+AI was used only for review support, documentation organization, and manual check scenario preparation. The implementation and final decisions were reviewed by the author.

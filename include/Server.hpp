@@ -42,7 +42,7 @@ public:
     void    run( void );
 
 private:
-    void    debug_State( const std::string& msg, int fd ) const;
+    void    trace_State( const std::string& msg, int fd ) const;
 
     void    init_Socket( void );
     void    init_Setsockopt( void );

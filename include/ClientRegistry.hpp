@@ -13,8 +13,6 @@ public:
     ~ClientRegistry( void );
 
 public:
-    void                debug_Print_All( void ) const;
-
     bool                has_Client( int fd ) const;
 
     ClientEntry*        find_By_Fd( int fd );

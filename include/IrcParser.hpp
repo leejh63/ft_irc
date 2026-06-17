@@ -19,7 +19,7 @@ private:
                                        std::vector<std::string>& out_Params,
                                        std::string& out_Trailing,
                                        bool& out_HasTrailing );
-private: // 금지
+private:
     IrcParser( void );
     ~IrcParser( void );
     IrcParser( const IrcParser& );

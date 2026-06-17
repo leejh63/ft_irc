@@ -42,7 +42,7 @@ $(OBJDIR):
 	mkdir -p $(OBJDIR)
 
 clean:
-	rm -f $(OBJS) $(DEPS)
+	rm -rf $(OBJDIR)
 
 fclean: clean
 	rm -f $(NAME)

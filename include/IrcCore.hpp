@@ -95,12 +95,12 @@ private:
     void    push_Close( std::vector<ServerAction>& out,
                         int fd ) const;
 
-private: // 디버깅
-    void        debug_Full( const ClientEntry& entry,
+private:
+    void        trace_Full( const ClientEntry& entry,
                             const IrcCommand& cmd,
                             const char* msg ) const;
 
-    const char* debug_Message( handleResult result ) const;
+    const char* trace_Message( handleResult result ) const;
 
 private:
     handleResult    check_Pass( int fd, const IrcCommand& cmd ) const;
@@ -145,6 +145,12 @@ private:
                                         char modeChar,
                                         const std::string& appliedParam ) const;
 
+    void            send_Applied_Channel_Mode( int fd,
+                                               const std::string& channelName,
+                                               const std::string& appliedModes,
+                                               const std::string& appliedParams,
+                                               std::vector<ServerAction>& out ) const;
+
     void            try_Register( ClientEntry& entry,
                                   std::vector<ServerAction>& out );
 
@@ -154,26 +160,26 @@ private:
     bool            ensure_Pass_Accepted( const ClientEntry& entry,
                                           const IrcCommand& cmd,
                                           std::vector<ServerAction>& out,
-                                          const char* debugMessage );
+                                          const char* traceMessage );
 
     bool            require_Channel_Exists( const ClientEntry& entry,
                                             const IrcCommand& cmd,
                                             const std::string& channelName,
                                             std::vector<ServerAction>& out,
-                                            const char* debugMessage );
+                                            const char* traceMessage );
 
     bool            require_Channel_Member( const ClientEntry& entry,
                                             const IrcCommand& cmd,
                                             const std::string& channelName,
                                             std::vector<ServerAction>& out,
-                                            const char* debugMessage );
+                                            const char* traceMessage );
 
     bool            require_Channel_Privilege( const ClientEntry& entry,
                                                const IrcCommand& cmd,
                                                bool allowed,
                                                const std::string& channelName,
                                                std::vector<ServerAction>& out,
-                                               const char* debugMessage ) const;
+                                               const char* traceMessage ) const;
 
     bool            require_Target_Channel_Member( const ClientEntry& entry,
                                                    const IrcCommand& cmd,
@@ -181,27 +187,27 @@ private:
                                                    const std::string& targetNick,
                                                    int targetFd,
                                                    std::vector<ServerAction>& out,
-                                                   const char* debugMessage ) const;
+                                                   const char* traceMessage ) const;
 
     ClientEntry*    find_Target_Client( const ClientEntry& entry,
                                         const IrcCommand& cmd,
                                         const std::string& targetNick,
                                         std::vector<ServerAction>& out,
-                                        const char* debugMessage );
+                                        const char* traceMessage );
 
     std::string     current_Nick( int fd ) const;
 
-    void            reply_And_Debug( const ClientEntry& entry,
+    void            reply_And_Trace( const ClientEntry& entry,
                                      const IrcCommand& cmd,
                                      std::vector<ServerAction>& out,
                                      const std::string& reply,
-                                     const char* debugMessage ) const;
+                                     const char* traceMessage ) const;
 
     void            reply_Need_More_Params( const ClientEntry& entry,
                                             const IrcCommand& cmd,
                                             std::vector<ServerAction>& out,
                                             const std::string& command,
-                                            const char* debugMessage ) const;
+                                            const char* traceMessage ) const;
 
     void            reply_Mode_Error( const ClientEntry& entry,
                                       const IrcCommand& cmd,
@@ -300,7 +306,7 @@ private:
                                       const std::string& message,
                                       std::vector<ServerAction>& out ) const;
 
-private: // 금지
+private:
     IrcCore( void );
     IrcCore( const IrcCore& );
     IrcCore& operator=( const IrcCore& );

@@ -293,6 +293,22 @@ void IrcCore::append_Mode_Change( std::string& outModes,
     }
 }
 
+void IrcCore::send_Applied_Channel_Mode( int fd,
+                                         const std::string& channelName,
+                                         const std::string& appliedModes,
+                                         const std::string& appliedParams,
+                                         std::vector<ServerAction>& out ) const
+{
+    if (appliedModes.empty())
+        return;
+
+    send_To_Channel(
+        channelName,
+        _messages.build_Mode_Message(fd, channelName, appliedModes, appliedParams),
+        out,
+        -1);
+}
+
 void IrcCore::try_Register( ClientEntry& entry,
                             std::vector<ServerAction>& out )
 {
@@ -339,41 +355,41 @@ std::string IrcCore::current_Nick( int fd ) const
     return _clients.get_Nick(fd);
 }
 
-void IrcCore::reply_And_Debug( const ClientEntry& entry,
+void IrcCore::reply_And_Trace( const ClientEntry& entry,
                                const IrcCommand& cmd,
                                std::vector<ServerAction>& out,
                                const std::string& reply,
-                               const char* debugMessage ) const
+                               const char* traceMessage ) const
 {
     push_Send(out, entry.fd, reply);
-    debug_Full(entry, cmd, debugMessage);
+    trace_Full(entry, cmd, traceMessage);
 }
 
 void IrcCore::reply_Need_More_Params( const ClientEntry& entry,
                                       const IrcCommand& cmd,
                                       std::vector<ServerAction>& out,
                                       const std::string& command,
-                                      const char* debugMessage ) const
+                                      const char* traceMessage ) const
 {
-    reply_And_Debug(
+    reply_And_Trace(
         entry,
         cmd,
         out,
         _messages.build_Err_Need_more_params(current_Nick(entry.fd), command),
-        debugMessage);
+        traceMessage);
 }
 
 bool IrcCore::ensure_Pass_Accepted( const ClientEntry& entry,
                                     const IrcCommand& cmd,
                                     std::vector<ServerAction>& out,
-                                    const char* debugMessage )
+                                    const char* traceMessage )
 {
     if (_clients.has_Pass_Ok(entry.fd))
         return true;
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_Not_registered(current_Nick(entry.fd)),
-                    debugMessage);
+                    traceMessage);
     return false;
 }
 
@@ -381,14 +397,14 @@ bool IrcCore::require_Channel_Exists( const ClientEntry& entry,
                                       const IrcCommand& cmd,
                                       const std::string& channelName,
                                       std::vector<ServerAction>& out,
-                                      const char* debugMessage )
+                                      const char* traceMessage )
 {
     if (_channels.has_Channel(channelName))
         return true;
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_No_such_channel(current_Nick(entry.fd), channelName),
-                    debugMessage);
+                    traceMessage);
     return false;
 }
 
@@ -396,14 +412,14 @@ bool IrcCore::require_Channel_Member( const ClientEntry& entry,
                                       const IrcCommand& cmd,
                                       const std::string& channelName,
                                       std::vector<ServerAction>& out,
-                                      const char* debugMessage )
+                                      const char* traceMessage )
 {
     if (_channels.has_Member(channelName, entry.fd))
         return true;
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_Not_on_channel(current_Nick(entry.fd), channelName),
-                    debugMessage);
+                    traceMessage);
     return false;
 }
 
@@ -412,14 +428,14 @@ bool IrcCore::require_Channel_Privilege( const ClientEntry& entry,
                                          bool allowed,
                                          const std::string& channelName,
                                          std::vector<ServerAction>& out,
-                                         const char* debugMessage ) const
+                                         const char* traceMessage ) const
 {
     if (allowed)
         return true;
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_Chan_oprivs_needed(current_Nick(entry.fd), channelName),
-                    debugMessage);
+                    traceMessage);
     return false;
 }
 
@@ -429,17 +445,17 @@ bool IrcCore::require_Target_Channel_Member( const ClientEntry& entry,
                                              const std::string& targetNick,
                                              int targetFd,
                                              std::vector<ServerAction>& out,
-                                             const char* debugMessage ) const
+                                             const char* traceMessage ) const
 {
     if (_channels.has_Member(channelName, targetFd))
         return true;
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_User_not_in_channel(
                         current_Nick(entry.fd),
                         targetNick,
                         channelName),
-                    debugMessage);
+                    traceMessage);
     return false;
 }
 
@@ -447,15 +463,15 @@ ClientEntry* IrcCore::find_Target_Client( const ClientEntry& entry,
                                           const IrcCommand& cmd,
                                           const std::string& targetNick,
                                           std::vector<ServerAction>& out,
-                                          const char* debugMessage )
+                                          const char* traceMessage )
 {
     ClientEntry* targetClient = _clients.find_By_Nick(targetNick);
     if (targetClient != NULL)
         return targetClient;
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_No_such_nick(current_Nick(entry.fd), targetNick),
-                    debugMessage);
+                    traceMessage);
     return NULL;
 }
 
@@ -477,7 +493,7 @@ void IrcCore::reply_Mode_Error( const ClientEntry& entry,
 
     if (modeResult == MODE_NO_SUCH_NICK)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_No_such_nick(nick, modeParam),
                         "[MODE] no such nick\n");
         return;
@@ -485,7 +501,7 @@ void IrcCore::reply_Mode_Error( const ClientEntry& entry,
 
     if (modeResult == MODE_USER_NOT_IN_CHANNEL)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_User_not_in_channel(nick, modeParam, channelName),
                         "[MODE] target not on channel\n");
         return;
@@ -493,7 +509,7 @@ void IrcCore::reply_Mode_Error( const ClientEntry& entry,
 
     if (modeResult == MODE_BAD_VALUE)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Invalid_mode_param(
                             nick,
                             channelName,
@@ -505,13 +521,13 @@ void IrcCore::reply_Mode_Error( const ClientEntry& entry,
 
     if (modeResult == MODE_LAST_OPERATOR)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Last_operator(nick, channelName),
                         "[MODE] cannot remove last operator\n");
         return;
     }
 
-    reply_And_Debug(entry, cmd, out,
+    reply_And_Trace(entry, cmd, out,
                     _messages.build_Err_Unknown_mode(nick, modeChar),
                     "[MODE] unsupported mode\n");
 }
@@ -526,7 +542,7 @@ void IrcCore::handle_Command( ClientEntry& entry,
 
     if (!_clients.is_Registered(entry.fd) && !route->allowedBeforeRegister)
     {
-        reply_And_Debug(entry, cmd, out,
+        reply_And_Trace(entry, cmd, out,
                         _messages.build_Err_Not_registered(current_Nick(entry.fd)),
                         "[ERROR] not registered\n");
         return;
