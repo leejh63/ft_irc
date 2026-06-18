@@ -13,14 +13,14 @@ struct ChannelEntry
     std::set<int>   operators;
     std::set<int>   invited;
 
-    bool            inviteOnly;     // +i
-    bool            topicOpOnly;    // +t
+    bool            inviteOnly;     // +i 초대 전용 모드
+    bool            topicOpOnly;    // +t 오퍼레이터만 토픽 변경 가능
 
-    bool            hasKey;         // +k on/off
-    std::string     key;            // +k parameter
+    bool            hasKey;         // +k 키 설정 여부
+    std::string     key;            // +k 키 값
 
-    bool            hasLimit;       // +l on/off
-    size_t          userLimit;      // +l parameter
+    bool            hasLimit;       // +l 인원 제한 설정 여부
+    size_t          userLimit;      // +l 최대 인원 수
 };
 
 #endif

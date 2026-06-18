@@ -1,5 +1,6 @@
 #include "IrcCore.hpp"
 
+// CAP 협상 명령을 최소 응답으로 처리한다.
 void IrcCore::handle_Cap( ClientEntry& entry,
                           const IrcCommand& cmd,
                           std::vector<ServerAction>& out )
@@ -39,6 +40,7 @@ void IrcCore::handle_Cap( ClientEntry& entry,
     trace_Full(entry, cmd, "[CAP] unsupported subcommand ignored\n");
 }
 
+// PING 명령에 대해 같은 토큰을 담은 PONG 응답을 보낸다.
 void IrcCore::handle_Ping( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -61,6 +63,7 @@ void IrcCore::handle_Ping( ClientEntry& entry,
                     "[PING] pong sent\n");
 }
 
+// WHO 명령에 대해 채널 멤버 목록과 종료 응답을 보낸다.
 void IrcCore::handle_Who( ClientEntry& entry,
                           const IrcCommand& cmd,
                           std::vector<ServerAction>& out )
@@ -111,6 +114,7 @@ void IrcCore::handle_Who( ClientEntry& entry,
     trace_Full(entry, cmd, "[WHO] channel who replied\n");
 }
 
+// PONG 명령 수신을 추적만 하고 별도 응답은 하지 않는다.
 void IrcCore::handle_Pong( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -119,6 +123,7 @@ void IrcCore::handle_Pong( ClientEntry& entry,
     trace_Full(entry, cmd, "[PONG] pong received\n");
 }
 
+// 파싱 실패나 내부 오류를 추적한다.
 void IrcCore::handle_Error( ClientEntry& entry,
                             const IrcCommand& cmd,
                             std::vector<ServerAction>& out )
@@ -127,6 +132,7 @@ void IrcCore::handle_Error( ClientEntry& entry,
     trace_Full(entry, cmd, trace_Message(HANDLE_ERROR));
 }
 
+// 지원하지 않는 명령에 대해 알 수 없는 명령 응답을 보낸다.
 void IrcCore::handle_Unknown( ClientEntry& entry,
                               const IrcCommand& cmd,
                               std::vector<ServerAction>& out )

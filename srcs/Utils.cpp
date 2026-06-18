@@ -1,8 +1,6 @@
 #include "Utils.hpp"
 
-/* 
-// white_trim
-*/
+// 문자열 양끝의 공백 문자를 제거한다.
 std::string white_trim(const std::string& str_word)
 {
 
@@ -16,10 +14,7 @@ std::string white_trim(const std::string& str_word)
     return str_word.substr(start, last - start + 1);
 }
 
-/*
-// check_port
-*/
-
+// 포트 문자열을 검증하고 사용 가능한 포트 번호로 변환한다.
 int check_port(const char* port)
 {
     if (!port) return 0;
@@ -37,9 +32,7 @@ int check_port(const char* port)
     return static_cast<int>(value);
 }
 
-/*
-// check_password
-*/
+// 서버 비밀번호가 비어 있거나 개행을 포함하지 않는지 확인한다.
 int check_password(const char* password)
 {
     if (!password) return 0;

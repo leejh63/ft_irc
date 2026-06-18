@@ -5,6 +5,7 @@
 #include "Server.hpp"
 #include "Signal.hpp"
 
+// 인자를 검증한 뒤 IRC 서버를 초기화하고 실행한다.
 int main(int argc, char** argv)
 {
     if (argc != 3) {

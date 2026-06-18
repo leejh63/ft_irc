@@ -4,6 +4,7 @@
 
 namespace
 {
+    // IRC 닉네임의 첫 글자로 허용되는 문자인지 확인한다.
     bool is_Nick_First_Char( char c )
     {
         if (c >= 'A' && c <= 'Z')
@@ -18,6 +19,7 @@ namespace
         return false;
     }
 
+    // IRC 닉네임의 두 번째 이후 글자로 허용되는 문자인지 확인한다.
     bool is_Nick_Char( char c )
     {
         if (is_Nick_First_Char(c))
@@ -28,6 +30,7 @@ namespace
     }
 }
 
+// PASS 명령의 파라미터와 등록 가능 상태를 검증한다.
 IrcCore::handleResult IrcCore::check_Pass( int fd,
                                            const IrcCommand& cmd ) const
 {
@@ -53,6 +56,7 @@ IrcCore::handleResult IrcCore::check_Pass( int fd,
     return PASS_PASSWORD_OK;
 }
 
+// NICK 명령의 닉네임 형식이 IRC 규칙에 맞는지 검증한다.
 IrcCore::handleResult IrcCore::check_Nick( const IrcCommand& cmd ) const
 {
     if (cmd.params.empty())
@@ -75,6 +79,7 @@ IrcCore::handleResult IrcCore::check_Nick( const IrcCommand& cmd ) const
     return NICK_OK;
 }
 
+// USER 명령의 필수 파라미터와 중복 등록 여부를 검증한다.
 IrcCore::handleResult IrcCore::check_User( int fd,
                                            const IrcCommand& cmd ) const
 {
@@ -90,6 +95,7 @@ IrcCore::handleResult IrcCore::check_User( int fd,
     return USER_OK;
 }
 
+// JOIN 전에 멤버십, 초대, 키, 인원 제한 조건을 검증한다.
 IrcCore::handleResult IrcCore::check_Join( const std::string& channelName,
                                            int fd,
                                            const std::string& providedKey ) const
@@ -114,6 +120,7 @@ IrcCore::handleResult IrcCore::check_Join( const std::string& channelName,
     return JOIN_OK;
 }
 
+// 파라미터 없는 채널 모드 토글을 적용한다.
 IrcCore::handleResult IrcCore::apply_Mode_Toggle( const std::string& channelName,
                                                   char sign,
                                                   char modeChar )
@@ -135,6 +142,7 @@ IrcCore::handleResult IrcCore::apply_Mode_Toggle( const std::string& channelName
     return MODE_UNKNOWN_CHAR;
 }
 
+// 키와 인원 제한처럼 파라미터를 사용하는 채널 모드를 적용한다.
 IrcCore::handleResult IrcCore::apply_Mode_Param( const std::string& channelName,
                                                  char sign,
                                                  char modeChar,
@@ -188,6 +196,7 @@ IrcCore::handleResult IrcCore::apply_Mode_Param( const std::string& channelName,
     return MODE_UNKNOWN_CHAR;
 }
 
+// 오퍼레이터 부여와 제거처럼 멤버 대상 채널 모드를 적용한다.
 IrcCore::handleResult IrcCore::apply_Mode_Member( const std::string& channelName,
                                                   char sign,
                                                   char modeChar,
@@ -220,6 +229,7 @@ IrcCore::handleResult IrcCore::apply_Mode_Member( const std::string& channelName
     return MODE_APPLY_OK;
 }
 
+// 채널 모드 문자를 종류별 적용 함수로 분배한다.
 IrcCore::handleResult IrcCore::apply_Channel_Mode( const std::string& channelName,
                                                    char sign,
                                                    char modeChar,
@@ -237,6 +247,7 @@ IrcCore::handleResult IrcCore::apply_Channel_Mode( const std::string& channelNam
     return apply_Mode_Member(channelName, sign, modeChar, modeParam, appliedParam);
 }
 
+// 사용자 모드를 클라이언트 상태에 적용한다.
 bool IrcCore::apply_User_Mode( int fd,
                                char sign,
                                char modeChar )
@@ -247,6 +258,7 @@ bool IrcCore::apply_User_Mode( int fd,
     return _clients.set_User_Mode(fd, modeChar, sign == '+');
 }
 
+// MODE 문자가 현재 부호에서 추가 파라미터를 요구하는지 확인한다.
 bool IrcCore::mode_Requires_Param( char sign,
                                    char modeChar ) const
 {
@@ -262,6 +274,7 @@ bool IrcCore::mode_Requires_Param( char sign,
     return false;
 }
 
+// 적용된 MODE 변경 문자열과 파라미터 목록을 누적한다.
 void IrcCore::append_Mode_Change( std::string& outModes,
                                   std::string& outParams,
                                   char sign,
@@ -293,6 +306,7 @@ void IrcCore::append_Mode_Change( std::string& outModes,
     }
 }
 
+// 실제로 적용된 채널 MODE 변경이 있을 때 채널 전체에 전파한다.
 void IrcCore::send_Applied_Channel_Mode( int fd,
                                          const std::string& channelName,
                                          const std::string& appliedModes,
@@ -309,6 +323,7 @@ void IrcCore::send_Applied_Channel_Mode( int fd,
         -1);
 }
 
+// 등록 조건이 충족된 클라이언트에 환영 응답을 보낸다.
 void IrcCore::try_Register( ClientEntry& entry,
                             std::vector<ServerAction>& out )
 {
@@ -319,6 +334,7 @@ void IrcCore::try_Register( ClientEntry& entry,
     }
 }
 
+// 명령어 이름에 대응하는 핸들러 라우트를 찾는다.
 const IrcCore::CommandRoute* IrcCore::find_Command_Route( const std::string& verb ) const
 {
     static const CommandRoute routes[] = {
@@ -350,11 +366,13 @@ const IrcCore::CommandRoute* IrcCore::find_Command_Route( const std::string& ver
     return NULL;
 }
 
+// 클라이언트의 현재 닉네임을 반환한다.
 std::string IrcCore::current_Nick( int fd ) const
 {
     return _clients.get_Nick(fd);
 }
 
+// 응답 메시지를 보내고 처리 추적 훅을 호출한다.
 void IrcCore::reply_And_Trace( const ClientEntry& entry,
                                const IrcCommand& cmd,
                                std::vector<ServerAction>& out,
@@ -365,6 +383,7 @@ void IrcCore::reply_And_Trace( const ClientEntry& entry,
     trace_Full(entry, cmd, traceMessage);
 }
 
+// 파라미터 부족 오류 응답을 보내고 처리 추적 훅을 호출한다.
 void IrcCore::reply_Need_More_Params( const ClientEntry& entry,
                                       const IrcCommand& cmd,
                                       std::vector<ServerAction>& out,
@@ -379,6 +398,7 @@ void IrcCore::reply_Need_More_Params( const ClientEntry& entry,
         traceMessage);
 }
 
+// PASS 검증이 끝났는지 확인하고 아니면 미등록 오류를 보낸다.
 bool IrcCore::ensure_Pass_Accepted( const ClientEntry& entry,
                                     const IrcCommand& cmd,
                                     std::vector<ServerAction>& out,
@@ -393,6 +413,7 @@ bool IrcCore::ensure_Pass_Accepted( const ClientEntry& entry,
     return false;
 }
 
+// 채널 존재 여부를 확인하고 없으면 오류 응답을 보낸다.
 bool IrcCore::require_Channel_Exists( const ClientEntry& entry,
                                       const IrcCommand& cmd,
                                       const std::string& channelName,
@@ -408,6 +429,7 @@ bool IrcCore::require_Channel_Exists( const ClientEntry& entry,
     return false;
 }
 
+// 요청자가 채널 멤버인지 확인하고 아니면 오류 응답을 보낸다.
 bool IrcCore::require_Channel_Member( const ClientEntry& entry,
                                       const IrcCommand& cmd,
                                       const std::string& channelName,
@@ -423,6 +445,7 @@ bool IrcCore::require_Channel_Member( const ClientEntry& entry,
     return false;
 }
 
+// 채널 오퍼레이터 권한이 필요한 동작을 수행할 수 있는지 확인한다.
 bool IrcCore::require_Channel_Privilege( const ClientEntry& entry,
                                          const IrcCommand& cmd,
                                          bool allowed,
@@ -439,6 +462,7 @@ bool IrcCore::require_Channel_Privilege( const ClientEntry& entry,
     return false;
 }
 
+// 대상 클라이언트가 해당 채널 멤버인지 확인하고 아니면 오류 응답을 보낸다.
 bool IrcCore::require_Target_Channel_Member( const ClientEntry& entry,
                                              const IrcCommand& cmd,
                                              const std::string& channelName,
@@ -459,6 +483,7 @@ bool IrcCore::require_Target_Channel_Member( const ClientEntry& entry,
     return false;
 }
 
+// 닉네임으로 대상 클라이언트를 찾고 없으면 오류 응답을 보낸다.
 ClientEntry* IrcCore::find_Target_Client( const ClientEntry& entry,
                                           const IrcCommand& cmd,
                                           const std::string& targetNick,
@@ -475,6 +500,7 @@ ClientEntry* IrcCore::find_Target_Client( const ClientEntry& entry,
     return NULL;
 }
 
+// MODE 적용 실패 결과에 맞는 IRC 오류 응답을 보낸다.
 void IrcCore::reply_Mode_Error( const ClientEntry& entry,
                                 const IrcCommand& cmd,
                                 std::vector<ServerAction>& out,
@@ -532,6 +558,7 @@ void IrcCore::reply_Mode_Error( const ClientEntry& entry,
                     "[MODE] unsupported mode\n");
 }
 
+// 파싱된 명령을 라우팅하고 등록 상태에 맞게 실행한다.
 void IrcCore::handle_Command( ClientEntry& entry,
                               const IrcCommand& cmd,
                               std::vector<ServerAction>& out )
@@ -551,12 +578,14 @@ void IrcCore::handle_Command( ClientEntry& entry,
     return (this->*(route->handler))(entry, cmd, out);
 }
 
+// 서버에서 지원하는 사용자 모드인지 확인한다.
 bool IrcCore::is_Supported_User_Mode( char modeChar ) const
 {
     return modeChar == 'i' ||
            modeChar == 'w';
 }
 
+// 서버에서 지원하는 채널 모드인지 확인한다.
 bool IrcCore::is_Supported_Channel_Mode( char modeChar ) const
 {
     return modeChar == 'i' ||
@@ -566,12 +595,14 @@ bool IrcCore::is_Supported_Channel_Mode( char modeChar ) const
            modeChar == 'o';
 }
 
+// 현재 클라이언트를 제외하고 닉네임을 사용할 수 있는지 확인한다.
 bool IrcCore::is_Nick_available( int fd,
                                  const std::string& nick ) const
 {
     return !_clients.is_Nick_In_Use(nick, fd);
 }
 
+// 문자열이 10진수 숫자로만 이루어져 있는지 확인한다.
 bool IrcCore::is_Number_String( const std::string& value ) const
 {
     if (value.empty())

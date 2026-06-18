@@ -16,32 +16,32 @@ class IrcCore
 private:
     enum handleResult
     {
-        // join
+        // JOIN 처리 결과
         JOIN_OK,
         JOIN_ALREADY_MEMBER,
         JOIN_INVITE_ONLY,
         JOIN_BAD_KEY,
         JOIN_CHANNEL_FULL,
 
-        // password
+        // PASS 처리 결과
         PASS_ALREADY_REGISTERED,
         PASS_PARAM_MISSING,
         PASS_PASSWORD_OK,
         PASS_PASSWORD_BAD,
 
-        // nickname
+        // NICK 처리 결과
         NICK_PARAM_MISSING,
         NICK_ERRONEUS,
         NICK_IN_USE,
         NICK_OK,
 
-        // user
+        // USER 처리 결과
         USER_PARAM_MISSING,
         USER_REALNAME_MISSING,
         USER_ALREADY_REGISTERED,
         USER_OK,
 
-        // MODE
+        // MODE 처리 결과
         MODE_APPLY_OK,
         MODE_PARAM_MISSING,
         MODE_NO_SUCH_NICK,
@@ -50,7 +50,7 @@ private:
         MODE_UNKNOWN_CHAR,
         MODE_LAST_OPERATOR,
 
-        // etc
+        // 공통 처리 결과
         HANDLE_ERROR,
         HANDLE_UNKNOWN,
     };

@@ -1,5 +1,6 @@
 #include "IrcCore.hpp"
 
+// JOIN 명령을 처리해 채널 참가, 토픽, NAMES 응답을 보낸다.
 void IrcCore::handle_Join( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -88,6 +89,7 @@ void IrcCore::handle_Join( ClientEntry& entry,
     trace_Full(entry, cmd, "[JOIN] joined channel\n");
 }
 
+// PART 명령을 처리해 채널에서 나가고 멤버들에게 알린다.
 void IrcCore::handle_Part( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -126,6 +128,7 @@ void IrcCore::handle_Part( ClientEntry& entry,
     trace_Full(entry, cmd, "[PART] left channel\n");
 }
 
+// PRIVMSG 명령을 처리해 채널 또는 사용자에게 메시지를 전달한다.
 void IrcCore::handle_Privmsg( ClientEntry& entry,
                               const IrcCommand& cmd,
                               std::vector<ServerAction>& out )
@@ -184,6 +187,7 @@ void IrcCore::handle_Privmsg( ClientEntry& entry,
     trace_Full(entry, cmd, "[PRIVMSG] sent to user\n");
 }
 
+// TOPIC 명령을 처리해 채널 토픽을 조회하거나 변경한다.
 void IrcCore::handle_Topic( ClientEntry& entry,
                             const IrcCommand& cmd,
                             std::vector<ServerAction>& out )
@@ -245,6 +249,7 @@ void IrcCore::handle_Topic( ClientEntry& entry,
     trace_Full(entry, cmd, "[TOPIC] topic changed\n");
 }
 
+// INVITE 명령을 처리해 대상 사용자를 채널 초대 목록에 추가한다.
 void IrcCore::handle_Invite( ClientEntry& entry,
                              const IrcCommand& cmd,
                              std::vector<ServerAction>& out )
@@ -308,6 +313,7 @@ void IrcCore::handle_Invite( ClientEntry& entry,
     trace_Full(entry, cmd, "[INVITE] invite processed\n");
 }
 
+// KICK 명령을 처리해 대상 사용자를 채널에서 제거한다.
 void IrcCore::handle_Kick( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -387,6 +393,7 @@ void IrcCore::handle_Kick( ClientEntry& entry,
     trace_Full(entry, cmd, "[KICK] kick processed\n");
 }
 
+// 사용자 MODE 명령을 조회하거나 적용한다.
 void IrcCore::handle_User_Mode( ClientEntry& entry,
                                 const IrcCommand& cmd,
                                 std::vector<ServerAction>& out )
@@ -497,6 +504,7 @@ void IrcCore::handle_User_Mode( ClientEntry& entry,
     trace_Full(entry, cmd, "[MODE] user mode changed\n");
 }
 
+// MODE 명령을 처리해 사용자 모드 또는 채널 모드를 조회/변경한다.
 void IrcCore::handle_Mode( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -628,6 +636,7 @@ void IrcCore::handle_Mode( ClientEntry& entry,
     trace_Full(entry, cmd, "[MODE] mode changed\n");
 }
 
+// QUIT 명령을 처리해 종료 이유를 전파하고 연결을 닫는다.
 void IrcCore::handle_Quit( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )

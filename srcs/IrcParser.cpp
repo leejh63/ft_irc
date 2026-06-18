@@ -2,6 +2,7 @@
 #include "IrcCommand.hpp"
 
 
+// 재사용할 IrcCommand 구조체를 빈 상태로 초기화한다.
 static void cmd_clear( IrcCommand& cmd )
 {
     cmd.raw_Line.clear();
@@ -13,12 +14,14 @@ static void cmd_clear( IrcCommand& cmd )
     cmd.hasTrailing = false;
 }
 
+// IRC 라인 끝에 남아 있는 CR 문자를 제거한다.
 void IrcParser::parse_Stripcr( std::string& raw_String )
 {
     if (!raw_String.empty() && raw_String[raw_String.size() - 1] == '\r')
         raw_String.erase(raw_String.size() - 1);
 }
 
+// 선택적인 접두부를 파싱하고 다음 위치로 이동한다.
 bool IrcParser::parse_Prefix( const std::string& raw_String, size_t& pos, std::string& out_Prefix )
 {
     if (pos >= raw_String.size())
@@ -42,6 +45,7 @@ bool IrcParser::parse_Prefix( const std::string& raw_String, size_t& pos, std::s
     return true;
 }
 
+// 명령어 이름을 파싱하고 대문자로 정규화한다.
 bool IrcParser::parse_Verb( const std::string& raw_String, size_t& pos, std::string& out_Verb )
 {
     while (pos < raw_String.size() && raw_String[pos] == ' ')
@@ -58,7 +62,7 @@ bool IrcParser::parse_Verb( const std::string& raw_String, size_t& pos, std::str
     if (out_Verb.empty())
         return false;
 
-    // Normalize command verb for dispatch.
+    // 명령 디스패치를 위해 명령어 이름을 대문자로 맞춘다.
     for (size_t i = 0; i < out_Verb.size(); ++i) {
         char &ch = out_Verb[i];
         if (ch >= 'a' && ch <= 'z')
@@ -72,6 +76,7 @@ bool IrcParser::parse_Verb( const std::string& raw_String, size_t& pos, std::str
     return true;
 }
 
+// 일반 파라미터와 마지막 파라미터를 분리해 저장한다.
 void IrcParser::parse_Params_Trailing( const std::string& raw_String,
                                        size_t pos,
                                        std::vector<std::string>& out_Params,
@@ -85,7 +90,7 @@ void IrcParser::parse_Params_Trailing( const std::string& raw_String,
 
     out_HasTrailing = false;
 
-    // Detect the IRC trailing parameter.
+    // IRC 마지막 파라미터가 시작되는 위치를 찾는다.
     if (pos < raw_String.size() && raw_String[pos] == ':')
         t = pos;
     else
@@ -127,6 +132,7 @@ void IrcParser::parse_Params_Trailing( const std::string& raw_String,
     }
 }
 
+// 원본 IRC 라인 하나를 접두부, 명령어, 파라미터로 파싱한다.
 bool IrcParser::parse_Line( const std::string& raw_Line, IrcCommand& cmd )
 {
     cmd_clear(cmd);
@@ -141,11 +147,11 @@ bool IrcParser::parse_Line( const std::string& raw_Line, IrcCommand& cmd )
     if (pos >= cmd.raw_Line.size())
         return false;
 
-    // 3) prefix (optional)
+    // 접두부는 선택 항목이다.
     if (cmd.raw_Line[pos] == ':' && !parse_Prefix(cmd.raw_Line, pos, cmd.prefix))
         return false;
 
-    // 4) verb (required)
+    // 명령어 이름은 필수 항목이다.
     if (!parse_Verb(cmd.raw_Line, pos, cmd.verb))
         return false;
 

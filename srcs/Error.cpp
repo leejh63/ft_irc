@@ -1,12 +1,10 @@
 #include "Error.hpp"
 
-#include <cstring>   // std::strerror
-#include <cerrno>    // errno, E*
+#include <cstring>
+#include <cerrno>
 #include <string>
 
-// ------------------------------------------------------------
-// errno symbol mappers (per API)
-// ------------------------------------------------------------
+// socket 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_socket( int e )
 {
     switch (e) {
@@ -23,6 +21,7 @@ static std::string errno_socket( int e )
     }
 }
 
+// setsockopt 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_setsockopt( int e )
 {
     switch (e) {
@@ -40,6 +39,7 @@ static std::string errno_setsockopt( int e )
     }
 }
 
+// bind 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_bind( int e )
 {
     switch (e) {
@@ -57,6 +57,7 @@ static std::string errno_bind( int e )
     }
 }
 
+// listen 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_listen( int e )
 {
     switch (e) {
@@ -73,6 +74,7 @@ static std::string errno_listen( int e )
     }
 }
 
+// poll 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_poll( int e )
 {
     switch (e) {
@@ -86,6 +88,7 @@ static std::string errno_poll( int e )
     }
 }
 
+// accept 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_accept( int e )
 {
     switch (e) {
@@ -109,6 +112,7 @@ static std::string errno_accept( int e )
     }
 }
 
+// recv 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_recv( int e )
 {
     switch (e) {
@@ -130,6 +134,7 @@ static std::string errno_recv( int e )
     }
 }
 
+// send 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_send( int e )
 {
     switch (e) {
@@ -157,6 +162,7 @@ static std::string errno_send( int e )
     }
 }
 
+// fcntl 호출에서 나온 errno 값을 문자열 이름으로 바꾼다.
 static std::string errno_fcntl( int e )
 {
     switch (e) {
@@ -170,9 +176,7 @@ static std::string errno_fcntl( int e )
     }
 }
 
-// ------------------------------------------------------------
-// function name mapper
-// ------------------------------------------------------------
+// 오류가 발생한 시스템 호출 이름을 반환한다.
 static const char* func_name( ErrFunc func )
 {
     switch (func) {
@@ -189,9 +193,7 @@ static const char* func_name( ErrFunc func )
     }
 }
 
-// ------------------------------------------------------------
-// public API
-// ------------------------------------------------------------
+// 시스템 호출 이름, errno 이름, strerror 메시지를 합쳐 오류 문구를 만든다.
 std::string err_word( int err_no, ErrFunc func )
 {
     std::string s(func_name(func));

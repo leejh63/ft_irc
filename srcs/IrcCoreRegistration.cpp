@@ -1,5 +1,6 @@
 #include "IrcCore.hpp"
 
+// PASS 명령을 처리해 비밀번호 검증 상태를 갱신한다.
 void IrcCore::handle_Pass( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -34,6 +35,7 @@ void IrcCore::handle_Pass( ClientEntry& entry,
                     trace_Message(result));
 }
 
+// NICK 명령을 처리해 닉네임을 설정하거나 변경 알림을 보낸다.
 void IrcCore::handle_Nick( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
@@ -92,6 +94,7 @@ void IrcCore::handle_Nick( ClientEntry& entry,
     trace_Full(entry, cmd, "[NICK] nickname set\n");
 }
 
+// USER 명령을 처리해 사용자 정보와 실명을 저장한다.
 void IrcCore::handle_User( ClientEntry& entry,
                            const IrcCommand& cmd,
                            std::vector<ServerAction>& out )
