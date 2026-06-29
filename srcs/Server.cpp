@@ -414,11 +414,22 @@ bool Server::process_Ready_Client( size_t idx )
 // poll 결과가 있는 모든 클라이언트 이벤트를 처리한다.
 void Server::process_Ready_Clients( void )
 {
-    for (size_t i = 1; i < _monitor.size(); )
+    std::vector<int> readyFds;
+
+    for (size_t i = 1; i < _monitor.size(); ++i)
     {
-        if (process_Ready_Client(i))
+        if (_monitor.revents_At(i) != 0)
+            readyFds.push_back(_monitor.fd_At(i));
+    }
+
+    for (size_t i = 0; i < readyFds.size(); ++i)
+    {
+        const size_t idx = find_Client_Index_By_Fd(readyFds[i]);
+
+        if (idx >= _monitor.size())
             continue;
-        ++i;
+
+        process_Ready_Client(idx);
     }
 }
 
